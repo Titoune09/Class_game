@@ -1298,7 +1298,7 @@ function Game2048({ onBest }) {
 // =====================================
 // 7) NOTES améliorées
 // =====================================
-function Notes() {
+function Notes({ onExit }) {
   const [txt, setTxt] = useState(() => load("fun.notes", "# Notes de cours\n\nChapitre 3 – Rappels :\n- …\n- …\n"));
   const [fontSize, setFontSize] = useState(16);
   const [fontFamily, setFontFamily] = useState('system-ui');
@@ -1367,7 +1367,7 @@ function Notes() {
           </button>
           
           <button 
-            onClick={() => window.history.back()}
+            onClick={onExit}
             className="px-3 py-2 rounded-xl border bg-red-500 text-white hover:bg-red-600 text-sm"
           >
             Quitter Notes
@@ -1592,7 +1592,7 @@ export default function FunSite() {
           {persist.tab === "stats"   && <StatsView stats={persist.stats} onReset={() => updateStats({ typingBestWpm: 0, memoryBestMoves: null, snakeBest: 0, game2048Best: 0 })} />}
           {persist.tab === "notes"   && (
             <div>
-              <Notes />
+              <Notes onExit={exitNotes} />
               {!stealth && (
                 <div className="max-w-4xl mx-auto px-4">
                   <button 
