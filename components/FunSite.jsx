@@ -775,6 +775,7 @@ function Snake({ onBest }) {
       }
       
       const body = [head, ...s];
+      // Vérification de collision avec la nourriture - coordonnées exactes
       if (head[0] === food[0] && head[1] === food[1]) {
         setScore((sc) => { const ns = sc + 1; return ns; });
         createFoodParticles(food[0], food[1]);
@@ -822,14 +823,14 @@ function Snake({ onBest }) {
       // Nourriture avec effet de pulsation
       const time = Date.now() * 0.005;
       const pulse = Math.sin(time) * 0.1 + 0.9;
-      const foodSize = size * pulse;
+      const foodSize = size * 0.8; // Taille fixe pour éviter les problèmes de collision
       const offset = (size - foodSize) / 2;
       
       // Ombre de la nourriture
       ctx.fillStyle = dark ? "#7f1d1d" : "#fecaca";
       ctx.fillRect(food[0] * size + offset + 2, food[1] * size + offset + 2, foodSize, foodSize);
       
-      // Nourriture principale
+      // Nourriture principale avec effet de pulsation
       const foodGradient = ctx.createRadialGradient(
         food[0] * size + size/2, food[1] * size + size/2, 0,
         food[0] * size + size/2, food[1] * size + size/2, foodSize/2
@@ -837,11 +838,15 @@ function Snake({ onBest }) {
       foodGradient.addColorStop(0, "#ef4444");
       foodGradient.addColorStop(1, "#dc2626");
       ctx.fillStyle = foodGradient;
-      ctx.fillRect(food[0] * size + offset, food[1] * size + offset, foodSize, foodSize);
+      
+      // Appliquer l'effet de pulsation à la taille de rendu seulement
+      const renderSize = foodSize * pulse;
+      const renderOffset = (foodSize - renderSize) / 2;
+      ctx.fillRect(food[0] * size + offset + renderOffset, food[1] * size + offset + renderOffset, renderSize, renderSize);
       
       // Reflet sur la nourriture
       ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.fillRect(food[0] * size + offset + 2, food[1] * size + offset + 2, foodSize * 0.4, foodSize * 0.4);
+      ctx.fillRect(food[0] * size + offset + renderOffset + 2, food[1] * size + offset + renderOffset + 2, renderSize * 0.4, renderSize * 0.4);
       
       // Serpent avec dégradé et ombres
       snake.forEach(([x, y], idx) => {
@@ -1055,6 +1060,10 @@ function Game2048({ onBest }) {
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
+  const [animatingTiles, setAnimatingTiles] = useState(new Map());
+  const [isAnimating, animate] = useAnimation();
+  const [particles, setParticles] = useState([]);
+  const [lastScore, setLastScore] = useState(0);
   const [animatingTiles, setAnimatingTiles] = useState(new Map());
   const [isAnimating, animate] = useAnimation();
   const [particles, setParticles] = useState([]);

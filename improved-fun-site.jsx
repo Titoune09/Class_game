@@ -928,6 +928,10 @@ function Game2048({ onBest }) {
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
+  const [animatingTiles, setAnimatingTiles] = useState(new Map());
+  const [isAnimating, animate] = useAnimation();
+  const [particles, setParticles] = useState([]);
+  const [lastScore, setLastScore] = useState(0);
 
   const addRandomTile = (currentBoard) => {
     const emptyCells = currentBoard.map((cell, index) => cell === 0 ? index : null).filter(val => val !== null);
@@ -935,23 +939,68 @@ function Game2048({ onBest }) {
     
     const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
     const newBoard = [...currentBoard];
-    newBoard[randomIndex] = Math.random() < 0.9 ? 2 : 4;
+    const newValue = Math.random() < 0.9 ? 2 : 4;
+    newBoard[randomIndex] = newValue;
+    
+    // Animation pour la nouvelle tuile
+    setAnimatingTiles(prev => {
+      const newMap = new Map(prev);
+      newMap.set(randomIndex, { 
+        type: 'spawn', 
+        startTime: Date.now(),
+        value: newValue
+      });
+      return newMap;
+    });
+    
     return newBoard;
+  };
+
+  const createMergeParticles = (index, value) => {
+    const row = Math.floor(index / 4);
+    const col = index % 4;
+    const x = col * 80 + 40; // Position approximative de la tuile
+    const y = row * 80 + 40;
+    
+    const newParticles = Array.from({ length: 8 }, (_, i) => ({
+      id: Date.now() + i,
+      x: x + Math.random() * 40 - 20,
+      y: y + Math.random() * 40 - 20,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 6,
+      life: 1000,
+      color: ['#f59e0b', '#f97316', '#ef4444', '#eab308'][Math.floor(Math.random() * 4)]
+    }));
+    setParticles(prev => [...prev, ...newParticles]);
   };
 
   const moveLeft = (board) => {
     const newBoard = [...board];
     let moved = false;
     let newScore = score;
+    const mergeAnimations = new Map();
 
     for (let row = 0; row < 4; row++) {
       const cells = newBoard.slice(row * 4, (row + 1) * 4).filter(cell => cell !== 0);
       const merged = [];
+      const originalCells = [...cells];
       
       for (let i = 0; i < cells.length; i++) {
         if (i < cells.length - 1 && cells[i] === cells[i + 1]) {
-          merged.push(cells[i] * 2);
-          newScore += cells[i] * 2;
+          const mergedValue = cells[i] * 2;
+          merged.push(mergedValue);
+          newScore += mergedValue;
+          
+          // Animation de fusion
+          const mergeIndex = row * 4 + merged.length - 1;
+          mergeAnimations.set(mergeIndex, {
+            type: 'merge',
+            startTime: Date.now(),
+            value: mergedValue,
+            fromValue: cells[i]
+          });
+          
+          createMergeParticles(mergeIndex, mergedValue);
           i++;
         } else {
           merged.push(cells[i]);
@@ -967,7 +1016,13 @@ function Game2048({ onBest }) {
       }
     }
     
-    setScore(newScore);
+    if (moved) {
+      setScore(newScore);
+      setAnimatingTiles(mergeAnimations);
+      setLastScore(score);
+      animate();
+    }
+    
     return moved ? newBoard : board;
   };
 
@@ -975,6 +1030,7 @@ function Game2048({ onBest }) {
     const newBoard = [...board];
     let moved = false;
     let newScore = score;
+    const mergeAnimations = new Map();
 
     for (let row = 0; row < 4; row++) {
       const cells = newBoard.slice(row * 4, (row + 1) * 4).filter(cell => cell !== 0);
@@ -982,8 +1038,20 @@ function Game2048({ onBest }) {
       
       for (let i = cells.length - 1; i >= 0; i--) {
         if (i > 0 && cells[i] === cells[i - 1]) {
-          merged.unshift(cells[i] * 2);
-          newScore += cells[i] * 2;
+          const mergedValue = cells[i] * 2;
+          merged.unshift(mergedValue);
+          newScore += mergedValue;
+          
+          // Animation de fusion
+          const mergeIndex = row * 4 + (4 - merged.length);
+          mergeAnimations.set(mergeIndex, {
+            type: 'merge',
+            startTime: Date.now(),
+            value: mergedValue,
+            fromValue: cells[i]
+          });
+          
+          createMergeParticles(mergeIndex, mergedValue);
           i--;
         } else {
           merged.unshift(cells[i]);
@@ -999,7 +1067,13 @@ function Game2048({ onBest }) {
       }
     }
     
-    setScore(newScore);
+    if (moved) {
+      setScore(newScore);
+      setAnimatingTiles(mergeAnimations);
+      setLastScore(score);
+      animate();
+    }
+    
     return moved ? newBoard : board;
   };
 
@@ -1007,6 +1081,7 @@ function Game2048({ onBest }) {
     const newBoard = [...board];
     let moved = false;
     let newScore = score;
+    const mergeAnimations = new Map();
 
     for (let col = 0; col < 4; col++) {
       const cells = [];
@@ -1017,8 +1092,20 @@ function Game2048({ onBest }) {
       const merged = [];
       for (let i = 0; i < cells.length; i++) {
         if (i < cells.length - 1 && cells[i] === cells[i + 1]) {
-          merged.push(cells[i] * 2);
-          newScore += cells[i] * 2;
+          const mergedValue = cells[i] * 2;
+          merged.push(mergedValue);
+          newScore += mergedValue;
+          
+          // Animation de fusion
+          const mergeIndex = merged.length * 4 + col;
+          mergeAnimations.set(mergeIndex, {
+            type: 'merge',
+            startTime: Date.now(),
+            value: mergedValue,
+            fromValue: cells[i]
+          });
+          
+          createMergeParticles(mergeIndex, mergedValue);
           i++;
         } else {
           merged.push(cells[i]);
@@ -1034,7 +1121,13 @@ function Game2048({ onBest }) {
       }
     }
     
-    setScore(newScore);
+    if (moved) {
+      setScore(newScore);
+      setAnimatingTiles(mergeAnimations);
+      setLastScore(score);
+      animate();
+    }
+    
     return moved ? newBoard : board;
   };
 
@@ -1042,6 +1135,7 @@ function Game2048({ onBest }) {
     const newBoard = [...board];
     let moved = false;
     let newScore = score;
+    const mergeAnimations = new Map();
 
     for (let col = 0; col < 4; col++) {
       const cells = [];
@@ -1052,8 +1146,20 @@ function Game2048({ onBest }) {
       const merged = [];
       for (let i = 0; i < cells.length; i++) {
         if (i < cells.length - 1 && cells[i] === cells[i + 1]) {
-          merged.push(cells[i] * 2);
-          newScore += cells[i] * 2;
+          const mergedValue = cells[i] * 2;
+          merged.push(mergedValue);
+          newScore += mergedValue;
+          
+          // Animation de fusion
+          const mergeIndex = (4 - merged.length) * 4 + col;
+          mergeAnimations.set(mergeIndex, {
+            type: 'merge',
+            startTime: Date.now(),
+            value: mergedValue,
+            fromValue: cells[i]
+          });
+          
+          createMergeParticles(mergeIndex, mergedValue);
           i++;
         } else {
           merged.push(cells[i]);
@@ -1069,7 +1175,13 @@ function Game2048({ onBest }) {
       }
     }
     
-    setScore(newScore);
+    if (moved) {
+      setScore(newScore);
+      setAnimatingTiles(mergeAnimations);
+      setLastScore(score);
+      animate();
+    }
+    
     return moved ? newBoard : board;
   };
 
@@ -1110,10 +1222,35 @@ function Game2048({ onBest }) {
         onBest?.(score);
       }
       
-      // Vérifier la défaite
+      // Vérifier la défaite - seulement si aucune fusion n'est possible
       if (updatedBoard.every(cell => cell !== 0)) {
-        setGameOver(true);
-        onBest?.(score);
+        let canMove = false;
+        // Vérifier les mouvements horizontaux
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 3; col++) {
+            if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+              canMove = true;
+              break;
+            }
+          }
+          if (canMove) break;
+        }
+        // Vérifier les mouvements verticaux
+        if (!canMove) {
+          for (let col = 0; col < 4; col++) {
+            for (let row = 0; row < 3; row++) {
+              if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                canMove = true;
+                break;
+              }
+            }
+            if (canMove) break;
+          }
+        }
+        if (!canMove) {
+          setGameOver(true);
+          onBest?.(score);
+        }
       }
     }
   };
@@ -1131,63 +1268,123 @@ function Game2048({ onBest }) {
     setScore(0);
     setGameOver(false);
     setWon(false);
+    setAnimatingTiles(new Map());
+    setParticles([]);
+    setLastScore(0);
   };
+
+  // Nettoyer les animations expirées
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnimatingTiles(prev => {
+        const now = Date.now();
+        const newMap = new Map();
+        prev.forEach((animation, key) => {
+          if (now - animation.startTime < 300) { // 300ms d'animation
+            newMap.set(key, animation);
+          }
+        });
+        return newMap;
+      });
+    }, 16);
+    return () => clearInterval(interval);
+  }, []);
 
   const getTileColor = (value) => {
     const colors = {
       0: 'bg-gray-200 dark:bg-zinc-800',
-      2: 'bg-yellow-100 dark:bg-yellow-900/20',
-      4: 'bg-yellow-200 dark:bg-yellow-800/30',
-      8: 'bg-orange-200 dark:bg-orange-800/30',
-      16: 'bg-orange-300 dark:bg-orange-700/40',
-      32: 'bg-red-300 dark:bg-red-700/40',
-      64: 'bg-red-400 dark:bg-red-600/50',
-      128: 'bg-pink-400 dark:bg-pink-600/50',
-      256: 'bg-pink-500 dark:bg-pink-500/60',
-      512: 'bg-purple-500 dark:bg-purple-500/60',
-      1024: 'bg-purple-600 dark:bg-purple-600/70',
-      2048: 'bg-gradient-to-br from-yellow-400 to-orange-500 dark:from-yellow-500 dark:to-orange-600'
+      2: 'bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-900/20 dark:to-yellow-800/30',
+      4: 'bg-gradient-to-br from-yellow-200 to-yellow-300 dark:from-yellow-800/30 dark:to-yellow-700/40',
+      8: 'bg-gradient-to-br from-orange-200 to-orange-300 dark:from-orange-800/30 dark:to-orange-700/40',
+      16: 'bg-gradient-to-br from-orange-300 to-orange-400 dark:from-orange-700/40 dark:to-orange-600/50',
+      32: 'bg-gradient-to-br from-red-300 to-red-400 dark:from-red-700/40 dark:to-red-600/50',
+      64: 'bg-gradient-to-br from-red-400 to-red-500 dark:from-red-600/50 dark:to-red-500/60',
+      128: 'bg-gradient-to-br from-pink-400 to-pink-500 dark:from-pink-600/50 dark:to-pink-500/60',
+      256: 'bg-gradient-to-br from-pink-500 to-pink-600 dark:from-pink-500/60 dark:to-pink-600/70',
+      512: 'bg-gradient-to-br from-purple-500 to-purple-600 dark:from-purple-500/60 dark:to-purple-600/70',
+      1024: 'bg-gradient-to-br from-purple-600 to-purple-700 dark:from-purple-600/70 dark:to-purple-700/80',
+      2048: 'bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 dark:from-yellow-500 dark:via-orange-600 dark:to-red-600'
     };
-    return colors[value] || 'bg-gray-300 dark:bg-zinc-700';
+    return colors[value] || 'bg-gradient-to-br from-gray-300 to-gray-400 dark:from-zinc-700 dark:to-zinc-600';
+  };
+
+  const getTileAnimation = (index) => {
+    const animation = animatingTiles.get(index);
+    if (!animation) return '';
+    
+    const elapsed = Date.now() - animation.startTime;
+    const progress = Math.min(elapsed / 300, 1);
+    
+    if (animation.type === 'spawn') {
+      const scale = progress < 0.5 ? progress * 2 : 1;
+      return `transform scale-${Math.round(scale * 10) / 10}`;
+    } else if (animation.type === 'merge') {
+      const scale = progress < 0.3 ? 1 + (progress / 0.3) * 0.2 : 1.2 - ((progress - 0.3) / 0.7) * 0.2;
+      return `transform scale-${Math.round(scale * 10) / 10}`;
+    }
+    
+    return '';
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 relative">
+      {/* Particules */}
+      {particles.map(p => (
+        <Particle key={p.id} {...p} />
+      ))}
+      
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-          Score : <b>{score}</b>
+        <div className={cls(
+          "px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200",
+          isAnimating && "scale-105 bg-green-50 dark:bg-green-900/20"
+        )}>
+          Score : <b className="text-green-600 dark:text-green-400">{score}</b>
+          {score > lastScore && (
+            <span className="ml-2 text-xs text-green-500 animate-pulse">
+              +{score - lastScore}
+            </span>
+          )}
         </div>
         <button 
           onClick={resetGame} 
-          className="ml-auto px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700"
+          className="ml-auto px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200 hover:scale-105"
         >
-          Nouveau jeu
+          🔄 Nouveau jeu
         </button>
       </div>
 
       {won && !gameOver && (
-        <div className="p-3 rounded-xl bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-200">
+        <div className="p-4 rounded-xl bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300 text-yellow-800 text-sm dark:from-yellow-900/20 dark:to-orange-900/20 dark:border-yellow-800 dark:text-yellow-200 animate-pulse">
           🎉 Félicitations ! Tu as atteint 2048 ! Continue à jouer pour un score plus élevé.
         </div>
       )}
 
       {gameOver && (
-        <div className="p-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-sm dark:bg-red-900/20 dark:border-red-800 dark:text-red-200">
-          Game Over ! Score final : {score}
+        <div className="p-4 rounded-xl bg-gradient-to-r from-red-100 to-pink-100 border-2 border-red-300 text-red-800 text-sm dark:from-red-900/20 dark:to-pink-900/20 dark:border-red-800 dark:text-red-200">
+          💀 Game Over ! Score final : <span className="font-bold">{score}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto">
+      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl">
         {board.map((value, index) => (
           <div
             key={index}
             className={cls(
-              "aspect-square rounded-lg flex items-center justify-center text-lg font-bold transition-all duration-200",
+              "aspect-square rounded-lg flex items-center justify-center text-lg font-bold transition-all duration-300 relative overflow-hidden",
               getTileColor(value),
-              value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100"
+              value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100",
+              getTileAnimation(index),
+              animatingTiles.has(index) && "shadow-lg shadow-yellow-500/50"
             )}
+            style={{
+              transform: animatingTiles.has(index) ? 'scale(1.1)' : 'scale(1)',
+              zIndex: animatingTiles.has(index) ? 10 : 1
+            }}
           >
             {value || ''}
+            {animatingTiles.has(index) && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+            )}
           </div>
         ))}
       </div>
@@ -1211,7 +1408,31 @@ function Game2048({ onBest }) {
               }
               
               if (updatedBoard.every(cell => cell !== 0)) {
-                setGameOver(true);
+                let canMove = false;
+                for (let row = 0; row < 4; row++) {
+                  for (let col = 0; col < 3; col++) {
+                    if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+                      canMove = true;
+                      break;
+                    }
+                  }
+                  if (canMove) break;
+                }
+                if (!canMove) {
+                  for (let col = 0; col < 4; col++) {
+                    for (let row = 0; row < 3; row++) {
+                      if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                        canMove = true;
+                        break;
+                      }
+                    }
+                    if (canMove) break;
+                  }
+                }
+                if (!canMove) {
+                  setGameOver(true);
+                  onBest?.(score);
+                }
               }
             }
           }}
@@ -1233,7 +1454,31 @@ function Game2048({ onBest }) {
               }
               
               if (updatedBoard.every(cell => cell !== 0)) {
-                setGameOver(true);
+                let canMove = false;
+                for (let row = 0; row < 4; row++) {
+                  for (let col = 0; col < 3; col++) {
+                    if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+                      canMove = true;
+                      break;
+                    }
+                  }
+                  if (canMove) break;
+                }
+                if (!canMove) {
+                  for (let col = 0; col < 4; col++) {
+                    for (let row = 0; row < 3; row++) {
+                      if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                        canMove = true;
+                        break;
+                      }
+                    }
+                    if (canMove) break;
+                  }
+                }
+                if (!canMove) {
+                  setGameOver(true);
+                  onBest?.(score);
+                }
               }
             }
           }}
@@ -1259,7 +1504,31 @@ function Game2048({ onBest }) {
               }
               
               if (updatedBoard.every(cell => cell !== 0)) {
-                setGameOver(true);
+                let canMove = false;
+                for (let row = 0; row < 4; row++) {
+                  for (let col = 0; col < 3; col++) {
+                    if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+                      canMove = true;
+                      break;
+                    }
+                  }
+                  if (canMove) break;
+                }
+                if (!canMove) {
+                  for (let col = 0; col < 4; col++) {
+                    for (let row = 0; row < 3; row++) {
+                      if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                        canMove = true;
+                        break;
+                      }
+                    }
+                    if (canMove) break;
+                  }
+                }
+                if (!canMove) {
+                  setGameOver(true);
+                  onBest?.(score);
+                }
               }
             }
           }}
@@ -1281,7 +1550,31 @@ function Game2048({ onBest }) {
               }
               
               if (updatedBoard.every(cell => cell !== 0)) {
-                setGameOver(true);
+                let canMove = false;
+                for (let row = 0; row < 4; row++) {
+                  for (let col = 0; col < 3; col++) {
+                    if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+                      canMove = true;
+                      break;
+                    }
+                  }
+                  if (canMove) break;
+                }
+                if (!canMove) {
+                  for (let col = 0; col < 4; col++) {
+                    for (let row = 0; row < 3; row++) {
+                      if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                        canMove = true;
+                        break;
+                      }
+                    }
+                    if (canMove) break;
+                  }
+                }
+                if (!canMove) {
+                  setGameOver(true);
+                  onBest?.(score);
+                }
               }
             }
           }}
