@@ -56,17 +56,17 @@ const TabBtn = ({ label, active, onClick, emoji, badge }) => (
   <button
     onClick={onClick}
     className={cls(
-      "px-3 py-2 rounded-xl border text-sm md:text-base transition-all duration-200 hover:shadow-lg hover:scale-105 relative",
+      "px-2 sm:px-3 py-2 sm:py-3 rounded-xl border text-xs sm:text-sm md:text-base transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 relative min-h-[44px] min-w-[44px] flex items-center justify-center",
       active
         ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-lg"
         : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-700"
     )}
     title={label}
   >
-    <span className="mr-1">{emoji}</span>
-    <span className="hidden sm:inline">{label}</span>
+    <span className="text-sm sm:text-base">{emoji}</span>
+    <span className="hidden sm:inline ml-1">{label}</span>
     {badge && (
-      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
         {badge}
       </span>
     )}
@@ -96,13 +96,17 @@ function Clicker() {
   }, [auto]);
 
   const createParticles = (x, y) => {
-    const newParticles = Array.from({ length: 8 }, (_, i) => ({
+    // Réduire le nombre de particules sur mobile pour améliorer les performances
+    const isMobile = window.innerWidth < 768;
+    const particleCount = isMobile ? 4 : 8;
+    
+    const newParticles = Array.from({ length: particleCount }, (_, i) => ({
       id: Date.now() + i,
       x: x + Math.random() * 40 - 20,
       y: y + Math.random() * 40 - 20,
       vx: (Math.random() - 0.5) * 4,
       vy: (Math.random() - 0.5) * 4,
-      life: 1000,
+      life: isMobile ? 500 : 1000, // Durée de vie plus courte sur mobile
       color: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57'][Math.floor(Math.random() * 5)]
     }));
     setParticles(prev => [...prev, ...newParticles]);
@@ -158,30 +162,31 @@ function Clicker() {
       <button
         onClick={handleClick}
         className={cls(
-          "w-full py-6 rounded-2xl text-xl font-bold active:scale-[0.95] transition-all duration-150 relative overflow-hidden",
+          "w-full py-6 sm:py-8 rounded-2xl text-xl font-bold active:scale-[0.95] transition-all duration-150 relative overflow-hidden touch-manipulation",
           "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl",
           isAnimating && "animate-pulse"
         )}
+        style={{ minHeight: '60px' }}
       >
         <span className="relative z-10">TAP !</span>
         <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 opacity-0 hover:opacity-100 transition-opacity duration-200" />
       </button>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <button
           disabled={score < buyMultCost}
           onClick={() => {
             if (score >= buyMultCost) { setScore(score - buyMultCost); setMult(mult + 1); }
           }}
           className={cls(
-            "p-3 rounded-xl border text-left transition-all duration-200 hover:scale-105",
+            "p-3 sm:p-4 rounded-xl border text-left transition-all duration-200 hover:scale-105 active:scale-95 min-h-[80px]",
             score >= buyMultCost
               ? "bg-white hover:shadow-lg dark:bg-zinc-800 dark:border-zinc-700"
               : "bg-gray-100 text-gray-400 dark:bg-zinc-900 dark:text-zinc-600"
           )}
         >
-          <div className="font-semibold">Améliorer le clic</div>
-          <div className="text-sm">+1 multiplicateur</div>
+          <div className="font-semibold text-sm sm:text-base">Améliorer le clic</div>
+          <div className="text-xs sm:text-sm">+1 multiplicateur</div>
           <div className="text-xs mt-1">Coût : {buyMultCost}</div>
         </button>
         <button
@@ -190,14 +195,14 @@ function Clicker() {
             if (score >= buyAutoCost) { setScore(score - buyAutoCost); setAuto(auto + 1); }
           }}
           className={cls(
-            "p-3 rounded-xl border text-left transition-all duration-200 hover:scale-105",
+            "p-3 sm:p-4 rounded-xl border text-left transition-all duration-200 hover:scale-105 active:scale-95 min-h-[80px]",
             score >= buyAutoCost
               ? "bg-white hover:shadow-lg dark:bg-zinc-800 dark:border-zinc-700"
               : "bg-gray-100 text-gray-400 dark:bg-zinc-900 dark:text-zinc-600"
           )}
         >
-          <div className="font-semibold">Auto-clic</div>
-          <div className="text-sm">+1 point / seconde</div>
+          <div className="font-semibold text-sm sm:text-base">Auto-clic</div>
+          <div className="text-xs sm:text-sm">+1 point / seconde</div>
           <div className="text-xs mt-1">Coût : {buyAutoCost}</div>
         </button>
       </div>
@@ -282,8 +287,11 @@ function Doodle() {
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     if (!drawing) return;
     
-    const x = clientX - rect.left; 
-    const y = clientY - rect.top;
+    // Optimisation pour mobile : ajuster les coordonnées selon la densité d'écran
+    const scaleX = cvs.width / rect.width;
+    const scaleY = cvs.height / rect.height;
+    const x = (clientX - rect.left) * scaleX; 
+    const y = (clientY - rect.top) * scaleY;
     
     ctx.globalCompositeOperation = brush === "eraser" ? "destination-out" : "source-over";
     ctx.fillStyle = brush === "eraser" ? "rgba(0,0,0,1)" : color;
@@ -308,6 +316,7 @@ function Doodle() {
   };
 
   const startDrawing = (e) => {
+    e.preventDefault();
     setDrawing(true);
     saveState();
     onDraw(e);
@@ -325,63 +334,65 @@ function Doodle() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 flex-wrap">
-        <input 
-          type="color" 
-          value={color} 
-          onChange={(e) => setColor(e.target.value)} 
-          className="w-10 h-10 rounded border-2 border-gray-300 dark:border-zinc-600" 
-        />
-        
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600 dark:text-zinc-300">Taille</span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <input 
-            type="range" 
-            min={2} 
-            max={24} 
-            value={size} 
-            onChange={(e) => setSize(parseInt(e.target.value))} 
-            className="w-20"
+            type="color" 
+            value={color} 
+            onChange={(e) => setColor(e.target.value)} 
+            className="w-12 h-12 sm:w-10 sm:h-10 rounded border-2 border-gray-300 dark:border-zinc-600" 
           />
-          <span className="text-sm text-gray-600 dark:text-zinc-300 w-8 text-right">{size}</span>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-zinc-300">Taille</span>
+            <input 
+              type="range" 
+              min={2} 
+              max={24} 
+              value={size} 
+              onChange={(e) => setSize(parseInt(e.target.value))} 
+              className="w-20 sm:w-16"
+            />
+            <span className="text-sm text-gray-600 dark:text-zinc-300 w-8 text-right">{size}</span>
+          </div>
         </div>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {brushes.map(b => (
             <button
               key={b.id}
               onClick={() => setBrush(b.id)}
               className={cls(
-                "px-2 py-1 rounded text-sm border transition-all",
+                "px-3 py-2 rounded text-sm border transition-all min-h-[44px] min-w-[44px] flex items-center justify-center",
                 brush === b.id 
                   ? "bg-purple-500 text-white border-purple-500" 
                   : "bg-white border-gray-300 dark:bg-zinc-800 dark:border-zinc-700"
               )}
               title={b.name}
             >
-              {b.icon}
+              <span className="text-lg">{b.icon}</span>
             </button>
           ))}
         </div>
 
-        <div className="flex gap-1 ml-auto">
+        <div className="flex gap-1 flex-wrap ml-auto">
           <button
             onClick={undo}
             disabled={historyIndex <= 0}
-            className="px-3 py-2 rounded-lg border bg-white hover:shadow disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700"
+            className="px-3 py-2 rounded-lg border bg-white hover:shadow disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             ↶
           </button>
           <button
             onClick={redo}
             disabled={historyIndex >= history.length - 1}
-            className="px-3 py-2 rounded-lg border bg-white hover:shadow disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700"
+            className="px-3 py-2 rounded-lg border bg-white hover:shadow disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             ↷
           </button>
           <button
             onClick={clearCanvas}
-            className="px-3 py-2 rounded-lg border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700"
+            className="px-3 py-2 rounded-lg border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px] flex items-center justify-center"
           >
             Effacer
           </button>
@@ -393,14 +404,23 @@ function Doodle() {
           ref={canvasRef}
           width={800}
           height={450}
-          className="w-full h-64 sm:h-80 bg-white touch-none cursor-crosshair"
+          className="w-full h-64 sm:h-80 md:h-96 bg-white touch-none cursor-crosshair game-canvas mobile-optimized"
           onMouseDown={startDrawing}
           onMouseMove={onDraw}
           onMouseUp={() => setDrawing(false)}
           onMouseLeave={() => setDrawing(false)}
-          onTouchStart={startDrawing}
-          onTouchMove={onDraw}
-          onTouchEnd={() => setDrawing(false)}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            startDrawing(e);
+          }}
+          onTouchMove={(e) => {
+            e.preventDefault();
+            onDraw(e);
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            setDrawing(false);
+          }}
         />
       </div>
       <div className="text-xs text-gray-500 dark:text-zinc-400">
@@ -491,23 +511,23 @@ function Typing({ onBest }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+        <div className="p-2 sm:p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
           <div className="text-xs text-gray-500 dark:text-zinc-300">WPM</div>
-          <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{wpm}</div>
+          <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">{wpm}</div>
         </div>
-        <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+        <div className="p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
           <div className="text-xs text-gray-500 dark:text-zinc-300">Précision</div>
-          <div className="text-xl font-bold text-green-600 dark:text-green-400">{accuracy}%</div>
+          <div className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">{accuracy}%</div>
         </div>
-        <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+        <div className="p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
           <div className="text-xs text-gray-500 dark:text-zinc-300">Temps</div>
-          <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{timeLeft}s</div>
+          <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">{timeLeft}s</div>
         </div>
       </div>
 
       <textarea
-        className="w-full h-28 p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+        className="w-full h-24 sm:h-28 p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 text-base sm:text-sm"
         placeholder="Tape ici…"
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -618,19 +638,21 @@ function Memory({ onBest }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-          Coups : <b>{moves}</b>
-        </div>
-        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-          Temps : <b>{formatTime(time)}</b>
-        </div>
-        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-          Paires : <b>{matches}/{EMOJIS.length}</b>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+            Coups : <b>{moves}</b>
+          </div>
+          <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+            Temps : <b>{formatTime(time)}</b>
+          </div>
+          <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+            Paires : <b>{matches}/{EMOJIS.length}</b>
+          </div>
         </div>
         <button 
           onClick={reset} 
-          className="ml-auto px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700"
+          className="px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px]"
         >
           Rejouer
         </button>
@@ -643,7 +665,7 @@ function Memory({ onBest }) {
       )}
       
       <div className={cls(
-        "grid grid-cols-4 sm:grid-cols-6 gap-2 transition-all duration-300",
+        "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 sm:gap-3 transition-all duration-300 mobile-grid",
         isAnimating && "scale-105"
       )}>
         {deck.map((c, i) => (
@@ -651,7 +673,7 @@ function Memory({ onBest }) {
             key={c.key}
             onClick={() => flip(i)}
             className={cls(
-              "aspect-square rounded-xl border flex items-center justify-center text-2xl select-none transition-all duration-300 hover:scale-105",
+              "aspect-square rounded-xl border flex items-center justify-center text-xl sm:text-2xl select-none transition-all duration-300 hover:scale-105 active:scale-95 min-h-[60px] sm:min-h-[80px]",
               c.matched
                 ? "bg-gradient-to-br from-green-100 to-emerald-100 border-green-300 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-800"
                 : c.flipped
@@ -707,13 +729,17 @@ function Snake({ onBest }) {
   };
 
   const createFoodParticles = (x, y) => {
-    const newParticles = Array.from({ length: 12 }, (_, i) => ({
+    // Réduire le nombre de particules sur mobile pour améliorer les performances
+    const isMobile = window.innerWidth < 768;
+    const particleCount = isMobile ? 6 : 12;
+    
+    const newParticles = Array.from({ length: particleCount }, (_, i) => ({
       id: Date.now() + i,
       x: x * size + size / 2,
       y: y * size + size / 2,
       vx: (Math.random() - 0.5) * 8,
       vy: (Math.random() - 0.5) * 8,
-      life: 800,
+      life: isMobile ? 400 : 800, // Durée de vie plus courte sur mobile
       color: ['#ef4444', '#f97316', '#eab308', '#22c55e'][Math.floor(Math.random() * 4)]
     }));
     setParticles(prev => [...prev, ...newParticles]);
@@ -912,71 +938,82 @@ function Snake({ onBest }) {
         <Particle key={p.id} {...p} />
       ))}
       
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className={cls(
-          "px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200",
-          isAnimating && "scale-105 bg-green-50 dark:bg-green-900/20"
-        )}>
-          Score : <b className="text-green-600 dark:text-green-400">{score}</b>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          <div className={cls(
+            "px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200",
+            isAnimating && "scale-105 bg-green-50 dark:bg-green-900/20"
+          )}>
+            Score : <b className="text-green-600 dark:text-green-400">{score}</b>
+          </div>
+          <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+            Meilleur : <b className="text-purple-600 dark:text-purple-400">{highScore}</b>
+          </div>
         </div>
-        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-          Meilleur : <b className="text-purple-600 dark:text-purple-400">{highScore}</b>
-        </div>
-        <label className="flex items-center gap-2 text-sm ml-auto">
-          <span className="text-gray-600 dark:text-zinc-300">Vitesse</span>
-          <input 
-            type="range" 
-            min={1} 
-            max={8} 
-            value={speed} 
-            onChange={(e) => setSpeed(parseInt(e.target.value))} 
-            className="w-20 accent-purple-500"
-          />
-          <span className="w-6 text-right text-purple-600 dark:text-purple-400 font-bold">{speed}</span>
-        </label>
-        <button 
-          onClick={() => setRunning((r) => !r)} 
-          className={cls(
-            "px-3 py-2 rounded-xl border transition-all duration-200 hover:scale-105",
-            running 
-              ? "bg-orange-500 text-white border-orange-500 hover:bg-orange-600" 
-              : "bg-green-500 text-white border-green-500 hover:bg-green-600"
-          )}
-        >
-          {running ? "Pause (P)" : "Reprendre"}
-        </button>
-        {gameOver && (
+        
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-gray-600 dark:text-zinc-300">Vitesse</span>
+            <input 
+              type="range" 
+              min={1} 
+              max={8} 
+              value={speed} 
+              onChange={(e) => setSpeed(parseInt(e.target.value))} 
+              className="w-16 sm:w-20 accent-purple-500"
+            />
+            <span className="w-6 text-right text-purple-600 dark:text-purple-400 font-bold">{speed}</span>
+          </label>
+          
           <button 
-            onClick={resetGame} 
-            className="px-3 py-2 rounded-xl border bg-red-500 text-white hover:bg-red-600 transition-all duration-200 hover:scale-105"
+            onClick={() => setRunning((r) => !r)} 
+            className={cls(
+              "px-3 py-2 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 min-h-[44px]",
+              running 
+                ? "bg-orange-500 text-white border-orange-500 hover:bg-orange-600" 
+                : "bg-green-500 text-white border-green-500 hover:bg-green-600"
+            )}
           >
-            Rejouer (R)
+            <span className="hidden sm:inline">{running ? "Pause (P)" : "Reprendre"}</span>
+            <span className="sm:hidden">{running ? "⏸️" : "▶️"}</span>
           </button>
-        )}
+          
+          {gameOver && (
+            <button 
+              onClick={resetGame} 
+              className="px-3 py-2 rounded-xl border bg-red-500 text-white hover:bg-red-600 transition-all duration-200 hover:scale-105 active:scale-95 min-h-[44px]"
+            >
+              <span className="hidden sm:inline">Rejouer (R)</span>
+              <span className="sm:hidden">🔄</span>
+            </button>
+          )}
+        </div>
       </div>
       
       <div className="rounded-2xl overflow-hidden border dark:border-zinc-700 relative shadow-lg">
         {!running && !gameOver && (
           <div className="absolute inset-0 z-10 grid place-items-center text-sm text-gray-700 dark:text-zinc-300 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
             <div className="px-4 py-2 rounded-full border-2 border-orange-300 dark:border-orange-700 bg-white dark:bg-zinc-800 shadow-lg">
-              ⏸️ En pause — P pour reprendre
+              <span className="hidden sm:inline">⏸️ En pause — P pour reprendre</span>
+              <span className="sm:hidden">⏸️ Pause</span>
             </div>
           </div>
         )}
         {gameOver && (
           <div className="absolute inset-0 z-10 grid place-items-center text-center text-gray-700 dark:text-zinc-300 bg-red-50/95 dark:bg-red-900/80 backdrop-blur-sm">
-            <div className="px-6 py-4 rounded-2xl border-2 border-red-300 dark:border-red-700 bg-white dark:bg-zinc-800 shadow-2xl animate-bounce">
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">💀 Game Over!</div>
-              <div className="text-lg mb-1">Score final: <span className="font-bold text-green-600 dark:text-green-400">{score}</span></div>
-              <div className="text-sm text-gray-500 dark:text-zinc-400">Appuie sur R pour rejouer</div>
+            <div className="px-4 sm:px-6 py-4 rounded-2xl border-2 border-red-300 dark:border-red-700 bg-white dark:bg-zinc-800 shadow-2xl animate-bounce">
+              <div className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mb-2">💀 Game Over!</div>
+              <div className="text-base sm:text-lg mb-1">Score final: <span className="font-bold text-green-600 dark:text-green-400">{score}</span></div>
+              <div className="text-xs sm:text-sm text-gray-500 dark:text-zinc-400">Appuie sur R pour rejouer</div>
             </div>
           </div>
         )}
-        <canvas ref={canvasRef} className="w-full aspect-square" />
+        <canvas ref={canvasRef} className="w-full aspect-square game-canvas mobile-optimized" />
       </div>
       
-      <div className="text-xs text-gray-500 dark:text-zinc-400 text-center">
-        🎮 Flèches ou ZQSD/WASD • Wrap • Vitesse réglable • P = pause • R = reset
+      <div className="text-xs text-gray-500 dark:text-zinc-400 text-center mobile-text">
+        <span className="hidden sm:inline">🎮 Flèches ou ZQSD/WASD • Wrap • Vitesse réglable • P = pause • R = reset</span>
+        <span className="sm:hidden">🎮 Utilise les contrôles tactiles ci-dessous</span>
       </div>
       
       {/* Contrôles tactiles pour mobile */}
@@ -989,7 +1026,7 @@ function Snake({ onBest }) {
               setDir(dirRef.current); 
             }
           }}
-          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           ↑
         </button>
@@ -1002,14 +1039,14 @@ function Snake({ onBest }) {
               setDir(dirRef.current); 
             }
           }}
-          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           ←
         </button>
         <button
           onClick={() => setRunning((r) => !r)}
           className={cls(
-            "p-3 rounded-xl border text-sm font-bold transition-all duration-200 hover:scale-110 active:scale-95",
+            "p-4 rounded-xl border text-sm font-bold transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]",
             running 
               ? "bg-orange-500 text-white border-orange-500 hover:bg-orange-600" 
               : "bg-green-500 text-white border-green-500 hover:bg-green-600"
@@ -1024,7 +1061,7 @@ function Snake({ onBest }) {
               setDir(dirRef.current); 
             }
           }}
-          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           →
         </button>
@@ -1037,7 +1074,7 @@ function Snake({ onBest }) {
               setDir(dirRef.current); 
             }
           }}
-          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           ↓
         </button>
@@ -1098,13 +1135,17 @@ function Game2048({ onBest }) {
     const x = col * 80 + 40; // Position approximative de la tuile
     const y = row * 80 + 40;
     
-    const newParticles = Array.from({ length: 8 }, (_, i) => ({
+    // Réduire le nombre de particules sur mobile pour améliorer les performances
+    const isMobile = window.innerWidth < 768;
+    const particleCount = isMobile ? 4 : 8;
+    
+    const newParticles = Array.from({ length: particleCount }, (_, i) => ({
       id: Date.now() + i,
       x: x + Math.random() * 40 - 20,
       y: y + Math.random() * 40 - 20,
       vx: (Math.random() - 0.5) * 6,
       vy: (Math.random() - 0.5) * 6,
-      life: 1000,
+      life: isMobile ? 500 : 1000, // Durée de vie plus courte sur mobile
       color: ['#f59e0b', '#f97316', '#ef4444', '#eab308'][Math.floor(Math.random() * 4)]
     }));
     setParticles(prev => [...prev, ...newParticles]);
@@ -1426,6 +1467,17 @@ function Game2048({ onBest }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Nettoyer les particules expirées
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setParticles(prev => prev.filter(p => {
+        const elapsed = Date.now() - (p.id - prev.length);
+        return elapsed < p.life;
+      }));
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
   const getTileColor = (value) => {
     const colors = {
       0: 'bg-gray-200 dark:bg-zinc-800',
@@ -1469,7 +1521,7 @@ function Game2048({ onBest }) {
         <Particle key={p.id} {...p} />
       ))}
       
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-wrap">
         <div className={cls(
           "px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200",
           isAnimating && "scale-105 bg-green-50 dark:bg-green-900/20"
@@ -1483,7 +1535,7 @@ function Game2048({ onBest }) {
         </div>
         <button 
           onClick={resetGame} 
-          className="ml-auto px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200 hover:scale-105"
+          className="px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200 hover:scale-105 active:scale-95 min-h-[44px]"
         >
           🔄 Nouveau jeu
         </button>
@@ -1501,12 +1553,12 @@ function Game2048({ onBest }) {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl">
+      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl mobile-grid">
         {board.map((value, index) => (
           <div
             key={index}
             className={cls(
-              "aspect-square rounded-lg flex items-center justify-center text-lg font-bold transition-all duration-300 relative overflow-hidden",
+              "aspect-square rounded-lg flex items-center justify-center text-sm sm:text-lg font-bold transition-all duration-300 relative overflow-hidden min-h-[60px] sm:min-h-[80px]",
               getTileColor(value),
               value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100",
               getTileAnimation(index),
@@ -1525,8 +1577,9 @@ function Game2048({ onBest }) {
         ))}
       </div>
       
-      <div className="text-xs text-gray-500 dark:text-zinc-400 text-center">
-        🎮 Utilise les flèches ou ZQSD/WASD pour déplacer les tuiles. Combine les tuiles identiques !
+      <div className="text-xs text-gray-500 dark:text-zinc-400 text-center mobile-text">
+        <span className="hidden sm:inline">🎮 Utilise les flèches ou ZQSD/WASD pour déplacer les tuiles. Combine les tuiles identiques !</span>
+        <span className="sm:hidden">🎮 Utilise les contrôles tactiles ci-dessous</span>
       </div>
       
       {/* Contrôles tactiles pour mobile */}
@@ -1550,7 +1603,7 @@ function Game2048({ onBest }) {
               }
             }
           }}
-          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           ↑
         </button>
@@ -1574,13 +1627,13 @@ function Game2048({ onBest }) {
               }
             }
           }}
-          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           ←
         </button>
         <button
           onClick={resetGame}
-          className="p-3 rounded-xl border bg-purple-500 text-white hover:bg-purple-600 text-sm font-bold transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-purple-500 text-white hover:bg-purple-600 text-sm font-bold transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           🔄
         </button>
@@ -1602,7 +1655,7 @@ function Game2048({ onBest }) {
               }
             }
           }}
-          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           →
         </button>
@@ -1626,7 +1679,7 @@ function Game2048({ onBest }) {
               }
             }
           }}
-          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95"
+          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
         >
           ↓
         </button>
@@ -1718,12 +1771,12 @@ function Notes({ onExit }) {
         <textarea 
           value={txt} 
           onChange={(e) => setTxt(e.target.value)} 
-          className="w-full h-[70vh] sm:h-[78vh] p-4 rounded-xl border bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="w-full h-[70vh] sm:h-[78vh] p-4 rounded-xl border bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 mobile-text"
           style={{ fontSize: `${fontSize}px`, fontFamily }}
           placeholder="Commence à écrire tes notes..."
         />
         
-        <div className="text-[11px] text-gray-400 mt-2 flex justify-between">
+        <div className="text-[11px] text-gray-400 mt-2 flex flex-col sm:flex-row justify-between gap-1 mobile-text">
           <span>Astuce : appuie sur <b>!</b> pour revenir ici instantanément.</span>
           <span>{txt.length} caractères</span>
         </div>
@@ -1820,6 +1873,7 @@ export default function FunSite() {
   }));
   const [stealth, setStealth] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const setDark = (v) => setPersist((p) => ({ ...p, dark: v }));
   const setTab = (t) => setPersist((p) => ({ ...p, tab: t }));
@@ -1842,16 +1896,17 @@ export default function FunSite() {
       const k = e.key;
       if (k === "!") { setTab("notes"); setStealth(true); addNotification("Mode discret activé", 'success'); return; }
       if (stealth) return;
-      if (k === "1") setTab("clicker");
-      if (k === "2") setTab("doodle");
-      if (k === "3") setTab("typing");
-      if (k === "4") setTab("memory");
-      if (k === "5") setTab("snake");
-      if (k === "6") setTab("game2048");
-      if (k === "7") setTab("stats");
+      if (k === "1") { setTab("clicker"); setMobileMenuOpen(false); }
+      if (k === "2") { setTab("doodle"); setMobileMenuOpen(false); }
+      if (k === "3") { setTab("typing"); setMobileMenuOpen(false); }
+      if (k === "4") { setTab("memory"); setMobileMenuOpen(false); }
+      if (k === "5") { setTab("snake"); setMobileMenuOpen(false); }
+      if (k === "6") { setTab("game2048"); setMobileMenuOpen(false); }
+      if (k === "7") { setTab("stats"); setMobileMenuOpen(false); }
       if (k.toLowerCase() === "d") setDark(!persist.dark);
       if (k.toLowerCase() === "r") addNotification("Reset disponible", 'info');
       if (k.toLowerCase() === "s") addNotification("Screenshot pris", 'success');
+      if (k === "Escape") setMobileMenuOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1887,35 +1942,50 @@ export default function FunSite() {
       <div className={cls("max-w-4xl mx-auto", isNotes ? "px-0 sm:px-0" : "px-4") }>
         {!isNotes && (
           <>
-            <header className="flex items-center gap-3 py-6 sm:py-10">
-              <div className="text-3xl animate-bounce">🕹️</div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Mini‑jeux discrets
+            <header className="flex items-center gap-3 py-4 sm:py-6 md:py-10">
+              <div className="text-2xl sm:text-3xl animate-bounce">🕹️</div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <span className="hidden sm:inline">Mini‑jeux discrets</span>
+                <span className="sm:hidden">Mini‑jeux</span>
               </h1>
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex items-center gap-1 sm:gap-2">
                 <button 
                   onClick={() => { setTab("notes"); setStealth(true); }} 
-                  className="px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm hover:shadow-lg hover:scale-105 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700"
+                  className="px-2 sm:px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px]"
                 >
-                  Mode discret (!)
+                  <span className="hidden sm:inline">Mode discret (!)</span>
+                  <span className="sm:hidden">📝</span>
                 </button>
                 <button 
                   onClick={() => setDark(!persist.dark)} 
-                  className="px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm hover:shadow-lg hover:scale-105 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700"
+                  className="px-2 sm:px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px]"
                 >
-                  {persist.dark ? "☀️ Clair (d)" : "🌙 Sombre (d)"}
+                  <span className="hidden sm:inline">{persist.dark ? "☀️ Clair (d)" : "🌙 Sombre (d)"}</span>
+                  <span className="sm:hidden">{persist.dark ? "☀️" : "🌙"}</span>
+                </button>
+                <button 
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+                  className="sm:hidden px-2 py-2 rounded-xl border bg-white hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px]"
+                >
+                  {mobileMenuOpen ? "✕" : "☰"}
                 </button>
               </div>
             </header>
             
-            <nav className="flex gap-2 mb-5 sticky top-0 z-10 bg-gradient-to-b from-white/90 to-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/80 p-2 rounded-2xl border shadow-lg dark:from-zinc-900/90 dark:to-zinc-900/70 dark:border-zinc-800">
+            <nav className={cls(
+              "flex gap-1 sm:gap-2 mb-4 sm:mb-5 sticky top-0 z-10 bg-gradient-to-b from-white/90 to-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/80 p-2 rounded-2xl border shadow-lg dark:from-zinc-900/90 dark:to-zinc-900/70 dark:border-zinc-800 overflow-x-auto",
+              mobileMenuOpen ? "flex-col sm:flex-row" : "flex-row"
+            )}>
               {tabs.map((t) => (
                 <TabBtn 
                   key={t.key} 
                   label={t.label} 
                   emoji={t.emoji} 
                   active={persist.tab === t.key} 
-                  onClick={() => setTab(t.key)}
+                  onClick={() => {
+                    setTab(t.key);
+                    setMobileMenuOpen(false);
+                  }}
                   badge={persist.stats[`${t.key}Best`] > 0 ? "!" : null}
                 />
               ))}
@@ -1923,7 +1993,7 @@ export default function FunSite() {
           </>
         )}
 
-        <main className={cls("rounded-3xl border shadow-lg transition-all duration-300", isNotes ? "m-0 border-0" : "bg-white p-4 sm:p-6 dark:bg-zinc-900 dark:border-zinc-800 hover:shadow-xl") }>
+        <main className={cls("rounded-2xl sm:rounded-3xl border shadow-lg transition-all duration-300", isNotes ? "m-0 border-0" : "bg-white p-3 sm:p-4 md:p-6 dark:bg-zinc-900 dark:border-zinc-800 hover:shadow-xl") }>
           {persist.tab === "clicker" && <Clicker />}
           {persist.tab === "doodle"  && <Doodle />}
           {persist.tab === "typing"  && <Typing onBest={onTypingBest} />}
@@ -1949,12 +2019,13 @@ export default function FunSite() {
         </main>
 
         {!isNotes && (
-          <footer className="text-xs text-gray-500 mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 dark:text-zinc-400">
-            <span>Raccourcis : 1‑7, d = sombre, ! = discret, P = pause, R = reset, S = screenshot.</span>
+          <footer className="text-xs text-gray-500 mt-4 sm:mt-6 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-1 sm:gap-x-3 sm:gap-y-1 dark:text-zinc-400">
+            <span className="hidden sm:inline">Raccourcis : 1‑7, d = sombre, ! = discret, P = pause, R = reset, S = screenshot.</span>
+            <span className="sm:hidden">Raccourcis : 1‑7, d = sombre, ! = discret</span>
             <span className="hidden sm:inline">•</span>
             <span>Stats et thème enregistrés localement.</span>
             <span className="hidden sm:inline">•</span>
-            <span>Version améliorée avec effets visuels !</span>
+            <span>Version mobile optimisée !</span>
           </footer>
         )}
       </div>
