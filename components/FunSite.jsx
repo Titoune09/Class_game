@@ -76,21 +76,24 @@ const TabBtn = ({ label, active, onClick, emoji, badge }) => (
 // =====================================
 // 1) CLICKER amélioré avec effets
 // =====================================
-function Clicker({ onBest }) {
-  const [score, setScore] = useState(0);
-  const [mult, setMult] = useState(1);
-  const [auto, setAuto] = useState(0);
+function Clicker() {
+  const [score, setScore] = useState(() => load("fun.clicker.score", 0));
+  const [mult, setMult] = useState(() => load("fun.clicker.mult", 1));
+  const [auto, setAuto] = useState(() => load("fun.clicker.auto", 0));
   const [particles, setParticles] = useState([]);
   const [isAnimating, animate] = useAnimation();
   const [combo, setCombo] = useState(0);
   const [lastClick, setLastClick] = useState(0);
 
+  // Sauvegarder automatiquement les données du clicker
+  useEffect(() => { save("fun.clicker.score", score); }, [score]);
+  useEffect(() => { save("fun.clicker.mult", mult); }, [mult]);
+  useEffect(() => { save("fun.clicker.auto", auto); }, [auto]);
+
   useEffect(() => {
     const id = setInterval(() => setScore((s) => s + auto), 1000);
     return () => clearInterval(id);
   }, [auto]);
-
-  useEffect(() => { onBest?.(score); }, [score]);
 
   const createParticles = (x, y) => {
     const newParticles = Array.from({ length: 8 }, (_, i) => ({
@@ -146,6 +149,9 @@ function Clicker({ onBest }) {
         <div className="text-sm text-gray-700 dark:text-zinc-300">
           ×{mult}/clic • {auto}/s auto
           {combo > 1 && <span className="ml-2 text-orange-500 font-bold">Combo x{combo}!</span>}
+        </div>
+        <div className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+          Progression sauvegardée automatiquement
         </div>
       </div>
 
@@ -845,6 +851,66 @@ function Snake({ onBest }) {
       <div className="text-xs text-gray-500 dark:text-zinc-400">
         Flèches ou ZQSD/WASD • Wrap • Vitesse réglable • P = pause • R = reset
       </div>
+      
+      {/* Contrôles tactiles pour mobile */}
+      <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto mt-4">
+        <div></div>
+        <button
+          onClick={() => {
+            if (dirRef.current[1] !== 1) { 
+              dirRef.current = [0, -1]; 
+              setDir(dirRef.current); 
+            }
+          }}
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
+        >
+          ↑
+        </button>
+        <div></div>
+        
+        <button
+          onClick={() => {
+            if (dirRef.current[0] !== 1) { 
+              dirRef.current = [-1, 0]; 
+              setDir(dirRef.current); 
+            }
+          }}
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
+        >
+          ←
+        </button>
+        <button
+          onClick={() => setRunning((r) => !r)}
+          className="p-3 rounded-xl border bg-purple-500 text-white hover:bg-purple-600 text-sm font-bold"
+        >
+          {running ? "Pause" : "Play"}
+        </button>
+        <button
+          onClick={() => {
+            if (dirRef.current[0] !== -1) { 
+              dirRef.current = [1, 0]; 
+              setDir(dirRef.current); 
+            }
+          }}
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
+        >
+          →
+        </button>
+        
+        <div></div>
+        <button
+          onClick={() => {
+            if (dirRef.current[1] !== -1) { 
+              dirRef.current = [0, 1]; 
+              setDir(dirRef.current); 
+            }
+          }}
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
+        >
+          ↓
+        </button>
+        <div></div>
+      </div>
     </div>
   );
 }
@@ -1129,6 +1195,102 @@ function Game2048({ onBest }) {
       <div className="text-xs text-gray-500 dark:text-zinc-400 text-center">
         Utilise les flèches ou ZQSD/WASD pour déplacer les tuiles. Combine les tuiles identiques !
       </div>
+      
+      {/* Contrôles tactiles pour mobile */}
+      <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto mt-4">
+        <div></div>
+        <button
+          onClick={() => {
+            const newBoard = moveUp(board);
+            if (newBoard !== board) {
+              const updatedBoard = addRandomTile(newBoard);
+              setBoard(updatedBoard);
+              
+              if (!won && updatedBoard.some(cell => cell === 2048)) {
+                setWon(true);
+              }
+              
+              if (updatedBoard.every(cell => cell !== 0)) {
+                setGameOver(true);
+              }
+            }
+          }}
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
+        >
+          ↑
+        </button>
+        <div></div>
+        
+        <button
+          onClick={() => {
+            const newBoard = moveLeft(board);
+            if (newBoard !== board) {
+              const updatedBoard = addRandomTile(newBoard);
+              setBoard(updatedBoard);
+              
+              if (!won && updatedBoard.some(cell => cell === 2048)) {
+                setWon(true);
+              }
+              
+              if (updatedBoard.every(cell => cell !== 0)) {
+                setGameOver(true);
+              }
+            }
+          }}
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
+        >
+          ←
+        </button>
+        <button
+          onClick={resetGame}
+          className="p-3 rounded-xl border bg-purple-500 text-white hover:bg-purple-600 text-sm font-bold"
+        >
+          Reset
+        </button>
+        <button
+          onClick={() => {
+            const newBoard = moveRight(board);
+            if (newBoard !== board) {
+              const updatedBoard = addRandomTile(newBoard);
+              setBoard(updatedBoard);
+              
+              if (!won && updatedBoard.some(cell => cell === 2048)) {
+                setWon(true);
+              }
+              
+              if (updatedBoard.every(cell => cell !== 0)) {
+                setGameOver(true);
+              }
+            }
+          }}
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
+        >
+          →
+        </button>
+        
+        <div></div>
+        <button
+          onClick={() => {
+            const newBoard = moveDown(board);
+            if (newBoard !== board) {
+              const updatedBoard = addRandomTile(newBoard);
+              setBoard(updatedBoard);
+              
+              if (!won && updatedBoard.some(cell => cell === 2048)) {
+                setWon(true);
+              }
+              
+              if (updatedBoard.every(cell => cell !== 0)) {
+                setGameOver(true);
+              }
+            }
+          }}
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
+        >
+          ↓
+        </button>
+        <div></div>
+      </div>
     </div>
   );
 }
@@ -1199,9 +1361,16 @@ function Notes() {
           
           <button 
             onClick={toggleFullscreen}
-            className="ml-auto px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-sm"
+            className="px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-sm"
           >
             {isFullscreen ? 'Sortir' : 'Plein écran'}
+          </button>
+          
+          <button 
+            onClick={() => window.history.back()}
+            className="px-3 py-2 rounded-xl border bg-red-500 text-white hover:bg-red-600 text-sm"
+          >
+            Quitter Notes
           </button>
         </div>
         
@@ -1244,10 +1413,6 @@ function StatsView({ stats, onReset }) {
       </div>
       
       <div className="grid sm:grid-cols-2 gap-3">
-        <div className="p-3 rounded-xl border bg-white dark:bg-zinc-800 dark:border-zinc-700">
-          <div className="text-xs text-gray-500 dark:text-zinc-300">Record Clicker</div>
-          <div className="text-3xl font-black text-purple-600 dark:text-purple-400">{stats.clickerBest}</div>
-        </div>
         <div className="p-3 rounded-xl border bg-white dark:bg-zinc-800 dark:border-zinc-700">
           <div className="text-xs text-gray-500 dark:text-zinc-300">Meilleur WPM</div>
           <div className="text-3xl font-black text-blue-600 dark:text-blue-400">{stats.typingBestWpm}</div>
@@ -1310,7 +1475,7 @@ export default function FunSite() {
   const [persist, setPersist] = useState(() => load("fun.persist", {
     dark: typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
     tab: "clicker",
-    stats: { clickerBest: 0, typingBestWpm: 0, memoryBestMoves: null, snakeBest: 0, game2048Best: 0 },
+    stats: { typingBestWpm: 0, memoryBestMoves: null, snakeBest: 0, game2048Best: 0 },
   }));
   const [stealth, setStealth] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -1353,7 +1518,6 @@ export default function FunSite() {
 
   const exitNotes = () => { setStealth(false); setTab("stats"); addNotification("Mode normal restauré", 'info'); };
 
-  const onClickerBest = (score) => { if (score > persist.stats.clickerBest) { updateStats({ clickerBest: score }); addNotification("Nouveau record Clicker !", 'success'); } };
   const onTypingBest = (wpm) => { if (wpm > persist.stats.typingBestWpm) { updateStats({ typingBestWpm: wpm }); addNotification("Nouveau record de vitesse !", 'success'); } };
   const onMemoryBest = (moves) => { if (persist.stats.memoryBestMoves === null || moves < persist.stats.memoryBestMoves) { updateStats({ memoryBestMoves: moves }); addNotification("Nouveau record Memory !", 'success'); } };
   const onSnakeBest = (score) => { if (score > persist.stats.snakeBest) { updateStats({ snakeBest: score }); addNotification("Nouveau record Snake !", 'success'); } };
@@ -1419,13 +1583,13 @@ export default function FunSite() {
         )}
 
         <main className={cls("rounded-3xl border shadow-lg transition-all duration-300", isNotes ? "m-0 border-0" : "bg-white p-4 sm:p-6 dark:bg-zinc-900 dark:border-zinc-800 hover:shadow-xl") }>
-          {persist.tab === "clicker" && <Clicker onBest={onClickerBest} />}
+          {persist.tab === "clicker" && <Clicker />}
           {persist.tab === "doodle"  && <Doodle />}
           {persist.tab === "typing"  && <Typing onBest={onTypingBest} />}
           {persist.tab === "memory"  && <Memory onBest={onMemoryBest} />}
           {persist.tab === "snake"   && <Snake onBest={onSnakeBest} />}
           {persist.tab === "game2048" && <Game2048 onBest={onGame2048Best} />}
-          {persist.tab === "stats"   && <StatsView stats={persist.stats} onReset={() => updateStats({ clickerBest: 0, typingBestWpm: 0, memoryBestMoves: null, snakeBest: 0, game2048Best: 0 })} />}
+          {persist.tab === "stats"   && <StatsView stats={persist.stats} onReset={() => updateStats({ typingBestWpm: 0, memoryBestMoves: null, snakeBest: 0, game2048Best: 0 })} />}
           {persist.tab === "notes"   && (
             <div>
               <Notes />
