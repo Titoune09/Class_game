@@ -794,21 +794,26 @@ function Snake({ onBest }) {
       const [dx, dy] = dirRef.current;
       const head = [ (s[0][0] + dx + grid) % grid, (s[0][1] + dy + grid) % grid ];
       
+      // Vérifier d'abord la collision avec la nourriture
+      if (head[0] === food[0] && head[1] === food[1]) {
+        setScore((sc) => { const ns = sc + 1; return ns; });
+        createFoodParticles(food[0], food[1]);
+        animate();
+        // Créer le nouveau corps avec la tête + l'ancien corps
+        const newBody = [head, ...s];
+        placeFood(newBody);
+        return newBody;
+      }
+      
+      // Ensuite vérifier la collision avec le corps
       if (s.some(([x, y]) => x === head[0] && y === head[1])) {
         setGameOver(true);
         setRunning(false);
         return s;
       }
       
+      // Mouvement normal : ajouter la tête et retirer la queue
       const body = [head, ...s];
-      // Vérification de collision avec la nourriture - coordonnées exactes
-      if (head[0] === food[0] && head[1] === food[1]) {
-        setScore((sc) => { const ns = sc + 1; return ns; });
-        createFoodParticles(food[0], food[1]);
-        animate();
-        placeFood(body);
-        return body;
-      }
       body.pop();
       return body;
     });
@@ -1101,10 +1106,8 @@ function Game2048({ onBest }) {
   const [isAnimating, animate] = useAnimation();
   const [particles, setParticles] = useState([]);
   const [lastScore, setLastScore] = useState(0);
-  const [animatingTiles, setAnimatingTiles] = useState(new Map());
-  const [isAnimating, animate] = useAnimation();
-  const [particles, setParticles] = useState([]);
-  const [lastScore, setLastScore] = useState(0);
+  const [tilePositions, setTilePositions] = useState(new Map());
+  const [isMoving, setIsMoving] = useState(false);
 
   const addRandomTile = (currentBoard) => {
     const emptyCells = currentBoard.map((cell, index) => cell === 0 ? index : null).filter(val => val !== null);
@@ -1156,6 +1159,7 @@ function Game2048({ onBest }) {
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
+    const slideAnimations = new Map();
 
     for (let row = 0; row < 4; row++) {
       const cells = newBoard.slice(row * 4, (row + 1) * 4).filter(cell => cell !== 0);
@@ -1186,8 +1190,22 @@ function Game2048({ onBest }) {
       
       while (merged.length < 4) merged.push(0);
       
+      // Créer les animations de glissement
       for (let col = 0; col < 4; col++) {
+        const oldValue = board[row * 4 + col];
         const newValue = merged[col];
+        
+        if (oldValue !== 0 && newValue !== oldValue) {
+          // Animation de glissement vers la gauche
+          slideAnimations.set(row * 4 + col, {
+            type: 'slide',
+            startTime: Date.now(),
+            fromPos: { row, col },
+            toPos: { row, col: merged.indexOf(newValue) },
+            value: oldValue
+          });
+        }
+        
         if (newBoard[row * 4 + col] !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
@@ -1196,8 +1214,16 @@ function Game2048({ onBest }) {
     if (moved) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
+      setTilePositions(slideAnimations);
       setLastScore(score);
+      setIsMoving(true);
       animate();
+      
+      // Arrêter l'animation après 300ms
+      setTimeout(() => {
+        setIsMoving(false);
+        setTilePositions(new Map());
+      }, 300);
     }
     
     return moved ? newBoard : board;
@@ -1208,6 +1234,7 @@ function Game2048({ onBest }) {
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
+    const slideAnimations = new Map();
 
     for (let row = 0; row < 4; row++) {
       const cells = newBoard.slice(row * 4, (row + 1) * 4).filter(cell => cell !== 0);
@@ -1237,8 +1264,22 @@ function Game2048({ onBest }) {
       
       while (merged.length < 4) merged.unshift(0);
       
+      // Créer les animations de glissement
       for (let col = 0; col < 4; col++) {
+        const oldValue = board[row * 4 + col];
         const newValue = merged[col];
+        
+        if (oldValue !== 0 && newValue !== oldValue) {
+          // Animation de glissement vers la droite
+          slideAnimations.set(row * 4 + col, {
+            type: 'slide',
+            startTime: Date.now(),
+            fromPos: { row, col },
+            toPos: { row, col: merged.indexOf(newValue) },
+            value: oldValue
+          });
+        }
+        
         if (newBoard[row * 4 + col] !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
@@ -1247,8 +1288,16 @@ function Game2048({ onBest }) {
     if (moved) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
+      setTilePositions(slideAnimations);
       setLastScore(score);
+      setIsMoving(true);
       animate();
+      
+      // Arrêter l'animation après 300ms
+      setTimeout(() => {
+        setIsMoving(false);
+        setTilePositions(new Map());
+      }, 300);
     }
     
     return moved ? newBoard : board;
@@ -1259,6 +1308,7 @@ function Game2048({ onBest }) {
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
+    const slideAnimations = new Map();
 
     for (let col = 0; col < 4; col++) {
       const cells = [];
@@ -1291,8 +1341,22 @@ function Game2048({ onBest }) {
       
       while (merged.length < 4) merged.push(0);
       
+      // Créer les animations de glissement
       for (let row = 0; row < 4; row++) {
+        const oldValue = board[row * 4 + col];
         const newValue = merged[row];
+        
+        if (oldValue !== 0 && newValue !== oldValue) {
+          // Animation de glissement vers le haut
+          slideAnimations.set(row * 4 + col, {
+            type: 'slide',
+            startTime: Date.now(),
+            fromPos: { row, col },
+            toPos: { row: merged.indexOf(newValue), col },
+            value: oldValue
+          });
+        }
+        
         if (newBoard[row * 4 + col] !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
@@ -1301,8 +1365,16 @@ function Game2048({ onBest }) {
     if (moved) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
+      setTilePositions(slideAnimations);
       setLastScore(score);
+      setIsMoving(true);
       animate();
+      
+      // Arrêter l'animation après 300ms
+      setTimeout(() => {
+        setIsMoving(false);
+        setTilePositions(new Map());
+      }, 300);
     }
     
     return moved ? newBoard : board;
@@ -1313,6 +1385,7 @@ function Game2048({ onBest }) {
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
+    const slideAnimations = new Map();
 
     for (let col = 0; col < 4; col++) {
       const cells = [];
@@ -1345,8 +1418,22 @@ function Game2048({ onBest }) {
       
       while (merged.length < 4) merged.unshift(0);
       
+      // Créer les animations de glissement
       for (let row = 0; row < 4; row++) {
+        const oldValue = board[row * 4 + col];
         const newValue = merged[row];
+        
+        if (oldValue !== 0 && newValue !== oldValue) {
+          // Animation de glissement vers le bas
+          slideAnimations.set(row * 4 + col, {
+            type: 'slide',
+            startTime: Date.now(),
+            fromPos: { row, col },
+            toPos: { row: merged.indexOf(newValue), col },
+            value: oldValue
+          });
+        }
+        
         if (newBoard[row * 4 + col] !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
@@ -1355,8 +1442,16 @@ function Game2048({ onBest }) {
     if (moved) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
+      setTilePositions(slideAnimations);
       setLastScore(score);
+      setIsMoving(true);
       animate();
+      
+      // Arrêter l'animation après 300ms
+      setTimeout(() => {
+        setIsMoving(false);
+        setTilePositions(new Map());
+      }, 300);
     }
     
     return moved ? newBoard : board;
@@ -1446,14 +1541,27 @@ function Game2048({ onBest }) {
     setGameOver(false);
     setWon(false);
     setAnimatingTiles(new Map());
+    setTilePositions(new Map());
     setParticles([]);
     setLastScore(0);
+    setIsMoving(false);
   };
 
   // Nettoyer les animations expirées
   useEffect(() => {
     const interval = setInterval(() => {
       setAnimatingTiles(prev => {
+        const now = Date.now();
+        const newMap = new Map();
+        prev.forEach((animation, key) => {
+          if (now - animation.startTime < 300) { // 300ms d'animation
+            newMap.set(key, animation);
+          }
+        });
+        return newMap;
+      });
+      
+      setTilePositions(prev => {
         const now = Date.now();
         const newMap = new Map();
         prev.forEach((animation, key) => {
@@ -1498,20 +1606,58 @@ function Game2048({ onBest }) {
 
   const getTileAnimation = (index) => {
     const animation = animatingTiles.get(index);
-    if (!animation) return '';
+    const slideAnimation = tilePositions.get(index);
     
-    const elapsed = Date.now() - animation.startTime;
-    const progress = Math.min(elapsed / 300, 1);
-    
-    if (animation.type === 'spawn') {
-      const scale = progress < 0.5 ? progress * 2 : 1;
-      return `transform scale-${Math.round(scale * 10) / 10}`;
-    } else if (animation.type === 'merge') {
-      const scale = progress < 0.3 ? 1 + (progress / 0.3) * 0.2 : 1.2 - ((progress - 0.3) / 0.7) * 0.2;
-      return `transform scale-${Math.round(scale * 10) / 10}`;
+    if (slideAnimation) {
+      const elapsed = Date.now() - slideAnimation.startTime;
+      const progress = Math.min(elapsed / 300, 1);
+      // Easing function pour un mouvement plus fluide comme un toggle
+      const easeProgress = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      
+      const fromPos = slideAnimation.fromPos;
+      const toPos = slideAnimation.toPos;
+      
+      const deltaX = (toPos.col - fromPos.col) * 100; // 100% par case
+      const deltaY = (toPos.row - fromPos.row) * 100;
+      
+      const translateX = deltaX * easeProgress;
+      const translateY = deltaY * easeProgress;
+      
+      return {
+        transform: `translate3d(${translateX}%, ${translateY}%, 0)`,
+        transition: 'none',
+        zIndex: 20,
+        willChange: 'transform'
+      };
     }
     
-    return '';
+    if (animation) {
+      const elapsed = Date.now() - animation.startTime;
+      const progress = Math.min(elapsed / 300, 1);
+      
+      if (animation.type === 'spawn') {
+        const scale = progress < 0.5 ? progress * 2 : 1;
+        return {
+          transform: `scale3d(${scale}, ${scale}, 1)`,
+          zIndex: 15,
+          willChange: 'transform'
+        };
+      } else if (animation.type === 'merge') {
+        const scale = progress < 0.3 ? 1 + (progress / 0.3) * 0.2 : 1.2 - ((progress - 0.3) / 0.7) * 0.2;
+        return {
+          transform: `scale3d(${scale}, ${scale}, 1)`,
+          zIndex: 15,
+          willChange: 'transform'
+        };
+      }
+    }
+    
+    return {
+      transform: 'scale3d(1, 1, 1)',
+      zIndex: 1
+    };
   };
 
   return (
@@ -1553,28 +1699,36 @@ function Game2048({ onBest }) {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl mobile-grid">
-        {board.map((value, index) => (
-          <div
-            key={index}
-            className={cls(
-              "aspect-square rounded-lg flex items-center justify-center text-sm sm:text-lg font-bold transition-all duration-300 relative overflow-hidden min-h-[60px] sm:min-h-[80px]",
-              getTileColor(value),
-              value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100",
-              getTileAnimation(index),
-              animatingTiles.has(index) && "shadow-lg shadow-yellow-500/50"
-            )}
-            style={{
-              transform: animatingTiles.has(index) ? 'scale(1.1)' : 'scale(1)',
-              zIndex: animatingTiles.has(index) ? 10 : 1
-            }}
-          >
-            {value || ''}
-            {animatingTiles.has(index) && (
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
-            )}
-          </div>
-        ))}
+      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl mobile-grid relative">
+        {board.map((value, index) => {
+          const slideAnimation = tilePositions.get(index);
+          const isSliding = slideAnimation && isMoving;
+          const animationStyle = getTileAnimation(index);
+          
+          return (
+            <div
+              key={index}
+              className={cls(
+                "aspect-square rounded-lg flex items-center justify-center text-sm sm:text-lg font-bold relative overflow-hidden min-h-[60px] sm:min-h-[80px]",
+                getTileColor(value),
+                value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100",
+                !isSliding && "transition-all duration-300",
+                animatingTiles.has(index) && "shadow-lg shadow-yellow-500/50"
+              )}
+              style={{
+                ...animationStyle
+              }}
+            >
+              {value || ''}
+              {animatingTiles.has(index) && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+              )}
+              {isSliding && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+              )}
+            </div>
+          );
+        })}
       </div>
       
       <div className="text-xs text-gray-500 dark:text-zinc-400 text-center mobile-text">
