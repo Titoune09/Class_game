@@ -23,14 +23,14 @@ const useAnimation = (duration = 300) => {
 };
 
 // ---------- Particules pour effets visuels ----------
-const Particle = ({ x, y, vx, vy, life, color }) => {
+const Particle = ({ x, y, vx, vy, life, color, size = 1 }) => {
   const [pos, setPos] = useState({ x, y });
   const [opacity, setOpacity] = useState(1);
   
   useEffect(() => {
     const interval = setInterval(() => {
       setPos(prev => ({ x: prev.x + vx, y: prev.y + vy }));
-      setOpacity(prev => Math.max(0, prev - 0.02));
+      setOpacity(prev => Math.max(0, prev - 0.015));
     }, 16);
     
     const timeout = setTimeout(() => clearInterval(interval), life);
@@ -39,13 +39,16 @@ const Particle = ({ x, y, vx, vy, life, color }) => {
   
   return (
     <div
-      className="absolute w-1 h-1 rounded-full pointer-events-none"
+      className="absolute rounded-full pointer-events-none"
       style={{
         left: pos.x,
         top: pos.y,
+        width: size,
+        height: size,
         backgroundColor: color,
         opacity,
-        transform: 'translate(-50%, -50%)'
+        transform: 'translate(-50%, -50%)',
+        boxShadow: `0 0 ${size * 2}px ${color}`
       }}
     />
   );
@@ -956,9 +959,11 @@ function Game2048({ onBest }) {
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
   const [animatingTiles, setAnimatingTiles] = useState(new Map());
+  const [tilePositions, setTilePositions] = useState(new Map());
   const [isAnimating, animate] = useAnimation();
   const [particles, setParticles] = useState([]);
   const [lastScore, setLastScore] = useState(0);
+  const [isMoving, setIsMoving] = useState(false);
 
   const addRandomTile = (currentBoard) => {
     const emptyCells = currentBoard.map((cell, index) => cell === 0 ? index : null).filter(val => val !== null);
@@ -983,6 +988,50 @@ function Game2048({ onBest }) {
     return newBoard;
   };
 
+  // Fonction pour créer des animations de mouvement fluides
+  const createMoveAnimations = (fromBoard, toBoard, direction) => {
+    const positions = new Map();
+    
+    // Créer des maps pour suivre les tuiles par valeur et position
+    const fromTiles = new Map();
+    const toTiles = new Map();
+    
+    // Indexer les tuiles de départ avec un identifiant unique
+    fromBoard.forEach((value, index) => {
+      if (value !== 0) {
+        const row = Math.floor(index / 4);
+        const col = index % 4;
+        const key = `${row}-${col}-${value}`;
+        fromTiles.set(key, { index, value, used: false });
+      }
+    });
+    
+    // Indexer les tuiles d'arrivée
+    toBoard.forEach((value, index) => {
+      if (value !== 0) {
+        const row = Math.floor(index / 4);
+        const col = index % 4;
+        const key = `${row}-${col}-${value}`;
+        toTiles.set(key, { index, value });
+      }
+    });
+    
+    // Créer les animations pour les tuiles qui bougent
+    toTiles.forEach((toTile, key) => {
+      const fromTile = fromTiles.get(key);
+      if (fromTile && !fromTile.used && fromTile.index !== toTile.index) {
+        positions.set(toTile.index, {
+          fromIndex: fromTile.index,
+          startTime: Date.now(),
+          duration: 200
+        });
+        fromTile.used = true; // Marquer comme utilisé
+      }
+    });
+    
+    return positions;
+  };
+
   const createMergeParticles = (index, value) => {
     const row = Math.floor(index / 4);
     const col = index % 4;
@@ -991,31 +1040,37 @@ function Game2048({ onBest }) {
     
     // Réduire le nombre de particules sur mobile pour améliorer les performances
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const particleCount = isMobile ? 4 : 8;
+    const particleCount = isMobile ? 6 : 12;
     
     const newParticles = Array.from({ length: particleCount }, (_, i) => ({
       id: Date.now() + i,
-      x: x + Math.random() * 40 - 20,
-      y: y + Math.random() * 40 - 20,
-      vx: (Math.random() - 0.5) * 6,
-      vy: (Math.random() - 0.5) * 6,
-      life: isMobile ? 500 : 1000, // Durée de vie plus courte sur mobile
-      color: ['#f59e0b', '#f97316', '#ef4444', '#eab308'][Math.floor(Math.random() * 4)]
+      x: x + Math.random() * 60 - 30,
+      y: y + Math.random() * 60 - 30,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      life: isMobile ? 800 : 1200, // Durée de vie plus longue
+      color: ['#f59e0b', '#f97316', '#ef4444', '#eab308', '#10b981', '#3b82f6'][Math.floor(Math.random() * 6)],
+      size: Math.random() * 3 + 1 // Taille variable des particules
     }));
     setParticles(prev => [...prev, ...newParticles]);
   };
 
   const moveLeft = (board) => {
-    const newBoard = [...board];
+    const newBoard = Array(16).fill(0);
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
 
     for (let row = 0; row < 4; row++) {
-      const cells = newBoard.slice(row * 4, (row + 1) * 4).filter(cell => cell !== 0);
-      const merged = [];
-      const originalCells = [...cells];
+      const cells = [];
+      // Récupérer les cellules non vides de cette ligne
+      for (let col = 0; col < 4; col++) {
+        const value = board[row * 4 + col];
+        if (value !== 0) cells.push(value);
+      }
       
+      // Fusionner les cellules identiques adjacentes
+      const merged = [];
       for (let i = 0; i < cells.length; i++) {
         if (i < cells.length - 1 && cells[i] === cells[i + 1]) {
           const mergedValue = cells[i] * 2;
@@ -1032,17 +1087,20 @@ function Game2048({ onBest }) {
           });
           
           createMergeParticles(mergeIndex, mergedValue);
-          i++;
+          i++; // Skip the next cell as it's been merged
         } else {
           merged.push(cells[i]);
         }
       }
       
+      // Remplir avec des zéros pour compléter la ligne
       while (merged.length < 4) merged.push(0);
       
+      // Vérifier si le mouvement a changé quelque chose
       for (let col = 0; col < 4; col++) {
+        const oldValue = board[row * 4 + col];
         const newValue = merged[col];
-        if (newBoard[row * 4 + col] !== newValue) moved = true;
+        if (oldValue !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
     }
@@ -1051,6 +1109,18 @@ function Game2048({ onBest }) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
       setLastScore(score);
+      setIsMoving(true);
+      
+      // Créer les animations de mouvement
+      const moveAnimations = createMoveAnimations(board, newBoard, 'left');
+      setTilePositions(moveAnimations);
+      
+      // Arrêter l'animation après 200ms
+      setTimeout(() => {
+        setIsMoving(false);
+        setTilePositions(new Map());
+      }, 200);
+      
       animate();
     }
     
@@ -1058,23 +1128,29 @@ function Game2048({ onBest }) {
   };
 
   const moveRight = (board) => {
-    const newBoard = [...board];
+    const newBoard = Array(16).fill(0);
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
 
     for (let row = 0; row < 4; row++) {
-      const cells = newBoard.slice(row * 4, (row + 1) * 4).filter(cell => cell !== 0);
-      const merged = [];
+      const cells = [];
+      // Récupérer les cellules non vides de cette ligne (de droite à gauche)
+      for (let col = 3; col >= 0; col--) {
+        const value = board[row * 4 + col];
+        if (value !== 0) cells.push(value);
+      }
       
-      for (let i = cells.length - 1; i >= 0; i--) {
-        if (i > 0 && cells[i] === cells[i - 1]) {
+      // Fusionner les cellules identiques adjacentes
+      const merged = [];
+      for (let i = 0; i < cells.length; i++) {
+        if (i < cells.length - 1 && cells[i] === cells[i + 1]) {
           const mergedValue = cells[i] * 2;
-          merged.unshift(mergedValue);
+          merged.push(mergedValue);
           newScore += mergedValue;
           
           // Animation de fusion
-          const mergeIndex = row * 4 + (4 - merged.length);
+          const mergeIndex = row * 4 + (3 - merged.length + 1);
           mergeAnimations.set(mergeIndex, {
             type: 'merge',
             startTime: Date.now(),
@@ -1083,17 +1159,20 @@ function Game2048({ onBest }) {
           });
           
           createMergeParticles(mergeIndex, mergedValue);
-          i--;
+          i++; // Skip the next cell as it's been merged
         } else {
-          merged.unshift(cells[i]);
+          merged.push(cells[i]);
         }
       }
       
+      // Remplir avec des zéros pour compléter la ligne (à gauche)
       while (merged.length < 4) merged.unshift(0);
       
+      // Vérifier si le mouvement a changé quelque chose
       for (let col = 0; col < 4; col++) {
+        const oldValue = board[row * 4 + col];
         const newValue = merged[col];
-        if (newBoard[row * 4 + col] !== newValue) moved = true;
+        if (oldValue !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
     }
@@ -1102,6 +1181,18 @@ function Game2048({ onBest }) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
       setLastScore(score);
+      setIsMoving(true);
+      
+      // Créer les animations de mouvement
+      const moveAnimations = createMoveAnimations(board, newBoard, 'right');
+      setTilePositions(moveAnimations);
+      
+      // Arrêter l'animation après 200ms
+      setTimeout(() => {
+        setIsMoving(false);
+        setTilePositions(new Map());
+      }, 200);
+      
       animate();
     }
     
@@ -1109,17 +1200,20 @@ function Game2048({ onBest }) {
   };
 
   const moveUp = (board) => {
-    const newBoard = [...board];
+    const newBoard = Array(16).fill(0);
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
 
     for (let col = 0; col < 4; col++) {
       const cells = [];
+      // Récupérer les cellules non vides de cette colonne
       for (let row = 0; row < 4; row++) {
-        if (newBoard[row * 4 + col] !== 0) cells.push(newBoard[row * 4 + col]);
+        const value = board[row * 4 + col];
+        if (value !== 0) cells.push(value);
       }
       
+      // Fusionner les cellules identiques adjacentes
       const merged = [];
       for (let i = 0; i < cells.length; i++) {
         if (i < cells.length - 1 && cells[i] === cells[i + 1]) {
@@ -1137,17 +1231,20 @@ function Game2048({ onBest }) {
           });
           
           createMergeParticles(mergeIndex, mergedValue);
-          i++;
+          i++; // Skip the next cell as it's been merged
         } else {
           merged.push(cells[i]);
         }
       }
       
+      // Remplir avec des zéros pour compléter la colonne
       while (merged.length < 4) merged.push(0);
       
+      // Vérifier si le mouvement a changé quelque chose
       for (let row = 0; row < 4; row++) {
+        const oldValue = board[row * 4 + col];
         const newValue = merged[row];
-        if (newBoard[row * 4 + col] !== newValue) moved = true;
+        if (oldValue !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
     }
@@ -1156,6 +1253,18 @@ function Game2048({ onBest }) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
       setLastScore(score);
+      setIsMoving(true);
+      
+      // Créer les animations de mouvement
+      const moveAnimations = createMoveAnimations(board, newBoard, 'up');
+      setTilePositions(moveAnimations);
+      
+      // Arrêter l'animation après 200ms
+      setTimeout(() => {
+        setIsMoving(false);
+        setTilePositions(new Map());
+      }, 200);
+      
       animate();
     }
     
@@ -1163,17 +1272,20 @@ function Game2048({ onBest }) {
   };
 
   const moveDown = (board) => {
-    const newBoard = [...board];
+    const newBoard = Array(16).fill(0);
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
 
     for (let col = 0; col < 4; col++) {
       const cells = [];
+      // Récupérer les cellules non vides de cette colonne (de bas en haut)
       for (let row = 3; row >= 0; row--) {
-        if (newBoard[row * 4 + col] !== 0) cells.push(newBoard[row * 4 + col]);
+        const value = board[row * 4 + col];
+        if (value !== 0) cells.push(value);
       }
       
+      // Fusionner les cellules identiques adjacentes
       const merged = [];
       for (let i = 0; i < cells.length; i++) {
         if (i < cells.length - 1 && cells[i] === cells[i + 1]) {
@@ -1182,7 +1294,7 @@ function Game2048({ onBest }) {
           newScore += mergedValue;
           
           // Animation de fusion
-          const mergeIndex = (4 - merged.length) * 4 + col;
+          const mergeIndex = (3 - merged.length + 1) * 4 + col;
           mergeAnimations.set(mergeIndex, {
             type: 'merge',
             startTime: Date.now(),
@@ -1191,17 +1303,20 @@ function Game2048({ onBest }) {
           });
           
           createMergeParticles(mergeIndex, mergedValue);
-          i++;
+          i++; // Skip the next cell as it's been merged
         } else {
           merged.push(cells[i]);
         }
       }
       
+      // Remplir avec des zéros pour compléter la colonne (en haut)
       while (merged.length < 4) merged.unshift(0);
       
+      // Vérifier si le mouvement a changé quelque chose
       for (let row = 0; row < 4; row++) {
+        const oldValue = board[row * 4 + col];
         const newValue = merged[row];
-        if (newBoard[row * 4 + col] !== newValue) moved = true;
+        if (oldValue !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
     }
@@ -1210,6 +1325,18 @@ function Game2048({ onBest }) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
       setLastScore(score);
+      setIsMoving(true);
+      
+      // Créer les animations de mouvement
+      const moveAnimations = createMoveAnimations(board, newBoard, 'down');
+      setTilePositions(moveAnimations);
+      
+      // Arrêter l'animation après 200ms
+      setTimeout(() => {
+        setIsMoving(false);
+        setTilePositions(new Map());
+      }, 200);
+      
       animate();
     }
     
@@ -1322,7 +1449,7 @@ function Game2048({ onBest }) {
         const now = Date.now();
         const newMap = new Map();
         prev.forEach((animation, key) => {
-          if (now - animation.startTime < 300) { // 300ms d'animation
+          if (now - animation.startTime < animation.duration) {
             newMap.set(key, animation);
           }
         });
@@ -1369,14 +1496,50 @@ function Game2048({ onBest }) {
     const progress = Math.min(elapsed / 300, 1);
     
     if (animation.type === 'spawn') {
-      const scale = progress < 0.5 ? progress * 2 : 1;
+      // Animation d'apparition avec bounce
+      const scale = progress < 0.6 ? progress * 1.5 : 1 + 0.1 * Math.sin((progress - 0.6) * 10);
       return `transform scale-${Math.round(scale * 10) / 10}`;
     } else if (animation.type === 'merge') {
-      const scale = progress < 0.3 ? 1 + (progress / 0.3) * 0.2 : 1.2 - ((progress - 0.3) / 0.7) * 0.2;
+      // Animation de fusion avec effet de pulsation
+      const scale = progress < 0.2 ? 1 + (progress / 0.2) * 0.3 : 
+                   progress < 0.6 ? 1.3 - ((progress - 0.2) / 0.4) * 0.1 :
+                   1 + 0.05 * Math.sin((progress - 0.6) * 15);
       return `transform scale-${Math.round(scale * 10) / 10}`;
     }
     
     return '';
+  };
+
+  const getTilePosition = (index) => {
+    const position = tilePositions.get(index);
+    if (!position) return {};
+    
+    const elapsed = Date.now() - position.startTime;
+    const progress = Math.min(elapsed / position.duration, 1);
+    
+    // Fonction d'easing pour un mouvement fluide (ease-out-back)
+    const easeOutBack = (t) => {
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    };
+    const easedProgress = easeOutBack(progress);
+    
+    const fromRow = Math.floor(position.fromIndex / 4);
+    const fromCol = position.fromIndex % 4;
+    const toRow = Math.floor(index / 4);
+    const toCol = index % 4;
+    
+    const deltaX = (toCol - fromCol) * 100; // 100% = 1 case
+    const deltaY = (toRow - fromRow) * 100;
+    
+    const translateX = deltaX * (1 - easedProgress);
+    const translateY = deltaY * (1 - easedProgress);
+    
+    return {
+      transform: `translate(${translateX}%, ${translateY}%)`,
+      transition: 'none'
+    };
   };
 
   return (
@@ -1418,28 +1581,37 @@ function Game2048({ onBest }) {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl">
-        {board.map((value, index) => (
-          <div
-            key={index}
-            className={cls(
-              "aspect-square rounded-lg flex items-center justify-center text-lg font-bold transition-all duration-300 relative overflow-hidden",
-              getTileColor(value),
-              value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100",
-              getTileAnimation(index),
-              animatingTiles.has(index) && "shadow-lg shadow-yellow-500/50"
-            )}
-            style={{
-              transform: animatingTiles.has(index) ? 'scale(1.1)' : 'scale(1)',
-              zIndex: animatingTiles.has(index) ? 10 : 1
-            }}
-          >
-            {value || ''}
-            {animatingTiles.has(index) && (
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
-            )}
-          </div>
-        ))}
+      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl relative">
+        {board.map((value, index) => {
+          const position = getTilePosition(index);
+          const animation = getTileAnimation(index);
+          const isAnimating = animatingTiles.has(index);
+          const isMovingTile = tilePositions.has(index);
+          
+          return (
+            <div
+              key={index}
+              className={cls(
+                "aspect-square rounded-lg flex items-center justify-center text-lg font-bold relative overflow-hidden",
+                getTileColor(value),
+                value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100",
+                animation,
+                isAnimating && "shadow-lg shadow-yellow-500/50",
+                isMovingTile ? "transition-none" : "transition-all duration-300 ease-out"
+              )}
+              style={{
+                transform: isAnimating ? 'scale(1.1)' : 'scale(1)',
+                zIndex: isAnimating ? 10 : isMovingTile ? 5 : 1,
+                ...position
+              }}
+            >
+              {value || ''}
+              {isAnimating && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+              )}
+            </div>
+          );
+        })}
       </div>
       
       <div className="text-xs text-gray-500 dark:text-zinc-400 text-center">
