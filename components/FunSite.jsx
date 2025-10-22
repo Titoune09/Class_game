@@ -56,17 +56,17 @@ const TabBtn = ({ label, active, onClick, emoji, badge }) => (
   <button
     onClick={onClick}
     className={cls(
-      "px-2 sm:px-3 py-2 sm:py-3 rounded-xl border text-xs sm:text-sm md:text-base transition-all duration-200 hover:shadow-lg hover:scale-105 active:scale-95 relative min-h-[44px] min-w-[44px] flex items-center justify-center",
+      "px-3 py-2 rounded-xl border text-sm md:text-base transition-all duration-200 hover:shadow-lg hover:scale-105 relative",
       active
         ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-lg"
         : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-700"
     )}
     title={label}
   >
-    <span className="text-sm sm:text-base">{emoji}</span>
-    <span className="hidden sm:inline ml-1">{label}</span>
+    <span className="mr-1">{emoji}</span>
+    <span className="hidden sm:inline">{label}</span>
     {badge && (
-      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
         {badge}
       </span>
     )}
@@ -95,9 +95,20 @@ function Clicker() {
     return () => clearInterval(id);
   }, [auto]);
 
+  // Nettoyer les particules expirées
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setParticles(prev => prev.filter(p => {
+        const elapsed = Date.now() - (p.id - prev.length);
+        return elapsed < p.life;
+      }));
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
   const createParticles = (x, y) => {
     // Réduire le nombre de particules sur mobile pour améliorer les performances
-    const isMobile = window.innerWidth < 768;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const particleCount = isMobile ? 4 : 8;
     
     const newParticles = Array.from({ length: particleCount }, (_, i) => ({
@@ -162,31 +173,30 @@ function Clicker() {
       <button
         onClick={handleClick}
         className={cls(
-          "w-full py-6 sm:py-8 rounded-2xl text-xl font-bold active:scale-[0.95] transition-all duration-150 relative overflow-hidden touch-manipulation",
+          "w-full py-6 rounded-2xl text-xl font-bold active:scale-[0.95] transition-all duration-150 relative overflow-hidden",
           "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl",
           isAnimating && "animate-pulse"
         )}
-        style={{ minHeight: '60px' }}
       >
         <span className="relative z-10">TAP !</span>
         <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 opacity-0 hover:opacity-100 transition-opacity duration-200" />
       </button>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <button
           disabled={score < buyMultCost}
           onClick={() => {
             if (score >= buyMultCost) { setScore(score - buyMultCost); setMult(mult + 1); }
           }}
           className={cls(
-            "p-3 sm:p-4 rounded-xl border text-left transition-all duration-200 hover:scale-105 active:scale-95 min-h-[80px]",
+            "p-3 rounded-xl border text-left transition-all duration-200 hover:scale-105",
             score >= buyMultCost
               ? "bg-white hover:shadow-lg dark:bg-zinc-800 dark:border-zinc-700"
               : "bg-gray-100 text-gray-400 dark:bg-zinc-900 dark:text-zinc-600"
           )}
         >
-          <div className="font-semibold text-sm sm:text-base">Améliorer le clic</div>
-          <div className="text-xs sm:text-sm">+1 multiplicateur</div>
+          <div className="font-semibold">Améliorer le clic</div>
+          <div className="text-sm">+1 multiplicateur</div>
           <div className="text-xs mt-1">Coût : {buyMultCost}</div>
         </button>
         <button
@@ -195,14 +205,14 @@ function Clicker() {
             if (score >= buyAutoCost) { setScore(score - buyAutoCost); setAuto(auto + 1); }
           }}
           className={cls(
-            "p-3 sm:p-4 rounded-xl border text-left transition-all duration-200 hover:scale-105 active:scale-95 min-h-[80px]",
+            "p-3 rounded-xl border text-left transition-all duration-200 hover:scale-105",
             score >= buyAutoCost
               ? "bg-white hover:shadow-lg dark:bg-zinc-800 dark:border-zinc-700"
               : "bg-gray-100 text-gray-400 dark:bg-zinc-900 dark:text-zinc-600"
           )}
         >
-          <div className="font-semibold text-sm sm:text-base">Auto-clic</div>
-          <div className="text-xs sm:text-sm">+1 point / seconde</div>
+          <div className="font-semibold">Auto-clic</div>
+          <div className="text-sm">+1 point / seconde</div>
           <div className="text-xs mt-1">Coût : {buyAutoCost}</div>
         </button>
       </div>
@@ -316,7 +326,6 @@ function Doodle() {
   };
 
   const startDrawing = (e) => {
-    e.preventDefault();
     setDrawing(true);
     saveState();
     onDraw(e);
@@ -334,65 +343,63 @@ function Doodle() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap">
+        <input 
+          type="color" 
+          value={color} 
+          onChange={(e) => setColor(e.target.value)} 
+          className="w-10 h-10 rounded border-2 border-gray-300 dark:border-zinc-600" 
+        />
+        
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600 dark:text-zinc-300">Taille</span>
           <input 
-            type="color" 
-            value={color} 
-            onChange={(e) => setColor(e.target.value)} 
-            className="w-12 h-12 sm:w-10 sm:h-10 rounded border-2 border-gray-300 dark:border-zinc-600" 
+            type="range" 
+            min={2} 
+            max={24} 
+            value={size} 
+            onChange={(e) => setSize(parseInt(e.target.value))} 
+            className="w-20"
           />
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-zinc-300">Taille</span>
-            <input 
-              type="range" 
-              min={2} 
-              max={24} 
-              value={size} 
-              onChange={(e) => setSize(parseInt(e.target.value))} 
-              className="w-20 sm:w-16"
-            />
-            <span className="text-sm text-gray-600 dark:text-zinc-300 w-8 text-right">{size}</span>
-          </div>
+          <span className="text-sm text-gray-600 dark:text-zinc-300 w-8 text-right">{size}</span>
         </div>
 
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1">
           {brushes.map(b => (
             <button
               key={b.id}
               onClick={() => setBrush(b.id)}
               className={cls(
-                "px-3 py-2 rounded text-sm border transition-all min-h-[44px] min-w-[44px] flex items-center justify-center",
+                "px-2 py-1 rounded text-sm border transition-all",
                 brush === b.id 
                   ? "bg-purple-500 text-white border-purple-500" 
                   : "bg-white border-gray-300 dark:bg-zinc-800 dark:border-zinc-700"
               )}
               title={b.name}
             >
-              <span className="text-lg">{b.icon}</span>
+              {b.icon}
             </button>
           ))}
         </div>
 
-        <div className="flex gap-1 flex-wrap ml-auto">
+        <div className="flex gap-1 ml-auto">
           <button
             onClick={undo}
             disabled={historyIndex <= 0}
-            className="px-3 py-2 rounded-lg border bg-white hover:shadow disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="px-3 py-2 rounded-lg border bg-white hover:shadow disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700"
           >
             ↶
           </button>
           <button
             onClick={redo}
             disabled={historyIndex >= history.length - 1}
-            className="px-3 py-2 rounded-lg border bg-white hover:shadow disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="px-3 py-2 rounded-lg border bg-white hover:shadow disabled:opacity-50 dark:bg-zinc-800 dark:border-zinc-700"
           >
             ↷
           </button>
           <button
             onClick={clearCanvas}
-            className="px-3 py-2 rounded-lg border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px] flex items-center justify-center"
+            className="px-3 py-2 rounded-lg border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700"
           >
             Effacer
           </button>
@@ -404,7 +411,7 @@ function Doodle() {
           ref={canvasRef}
           width={800}
           height={450}
-          className="w-full h-64 sm:h-80 md:h-96 bg-white touch-none cursor-crosshair game-canvas mobile-optimized"
+          className="w-full h-64 sm:h-80 bg-white touch-none cursor-crosshair"
           onMouseDown={startDrawing}
           onMouseMove={onDraw}
           onMouseUp={() => setDrawing(false)}
@@ -511,23 +518,23 @@ function Typing({ onBest }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
-        <div className="p-2 sm:p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
           <div className="text-xs text-gray-500 dark:text-zinc-300">WPM</div>
-          <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">{wpm}</div>
+          <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{wpm}</div>
         </div>
-        <div className="p-2 sm:p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
+        <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
           <div className="text-xs text-gray-500 dark:text-zinc-300">Précision</div>
-          <div className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">{accuracy}%</div>
+          <div className="text-xl font-bold text-green-600 dark:text-green-400">{accuracy}%</div>
         </div>
-        <div className="p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+        <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
           <div className="text-xs text-gray-500 dark:text-zinc-300">Temps</div>
-          <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">{timeLeft}s</div>
+          <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{timeLeft}s</div>
         </div>
       </div>
 
       <textarea
-        className="w-full h-24 sm:h-28 p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100 text-base sm:text-sm"
+        className="w-full h-28 p-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
         placeholder="Tape ici…"
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -638,21 +645,19 @@ function Memory({ onBest }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-wrap">
-        <div className="flex gap-2 flex-wrap">
-          <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-            Coups : <b>{moves}</b>
-          </div>
-          <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-            Temps : <b>{formatTime(time)}</b>
-          </div>
-          <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-            Paires : <b>{matches}/{EMOJIS.length}</b>
-          </div>
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+          Coups : <b>{moves}</b>
+        </div>
+        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+          Temps : <b>{formatTime(time)}</b>
+        </div>
+        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+          Paires : <b>{matches}/{EMOJIS.length}</b>
         </div>
         <button 
           onClick={reset} 
-          className="px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px]"
+          className="ml-auto px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700"
         >
           Rejouer
         </button>
@@ -665,7 +670,7 @@ function Memory({ onBest }) {
       )}
       
       <div className={cls(
-        "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 sm:gap-3 transition-all duration-300 mobile-grid",
+        "grid grid-cols-4 sm:grid-cols-6 gap-2 transition-all duration-300",
         isAnimating && "scale-105"
       )}>
         {deck.map((c, i) => (
@@ -673,7 +678,7 @@ function Memory({ onBest }) {
             key={c.key}
             onClick={() => flip(i)}
             className={cls(
-              "aspect-square rounded-xl border flex items-center justify-center text-xl sm:text-2xl select-none transition-all duration-300 hover:scale-105 active:scale-95 min-h-[60px] sm:min-h-[80px]",
+              "aspect-square rounded-xl border flex items-center justify-center text-2xl select-none transition-all duration-300 hover:scale-105",
               c.matched
                 ? "bg-gradient-to-br from-green-100 to-emerald-100 border-green-300 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-800"
                 : c.flipped
@@ -696,7 +701,7 @@ function Memory({ onBest }) {
 }
 
 // =====================================
-// 5) SNAKE amélioré avec animations fluides
+// 5) SNAKE amélioré
 // =====================================
 function Snake({ onBest }) {
   const canvasRef = useRef(null);
@@ -709,40 +714,15 @@ function Snake({ onBest }) {
   const [speed, setSpeed] = useState(3);
   const [gameOver, setGameOver] = useState(false);
   const [highScore, setHighScore] = useState(0);
-  const [particles, setParticles] = useState([]);
-  const [isAnimating, animate] = useAnimation();
-  const [lastFoodPos, setLastFoodPos] = useState([15, 10]);
   const grid = 20; 
   const size = 18;
   const intervalRef = useRef(null);
-  const animationRef = useRef(null);
 
   const placeFood = (body) => {
     while (true) {
       const f = [Math.floor(Math.random() * grid), Math.floor(Math.random() * grid)];
-      if (!body.some(([x, y]) => x === f[0] && y === f[1])) { 
-        setLastFoodPos(food);
-        setFood(f); 
-        return; 
-      }
+      if (!body.some(([x, y]) => x === f[0] && y === f[1])) { setFood(f); return; }
     }
-  };
-
-  const createFoodParticles = (x, y) => {
-    // Réduire le nombre de particules sur mobile pour améliorer les performances
-    const isMobile = window.innerWidth < 768;
-    const particleCount = isMobile ? 6 : 12;
-    
-    const newParticles = Array.from({ length: particleCount }, (_, i) => ({
-      id: Date.now() + i,
-      x: x * size + size / 2,
-      y: y * size + size / 2,
-      vx: (Math.random() - 0.5) * 8,
-      vy: (Math.random() - 0.5) * 8,
-      life: isMobile ? 400 : 800, // Durée de vie plus courte sur mobile
-      color: ['#ef4444', '#f97316', '#eab308', '#22c55e'][Math.floor(Math.random() * 4)]
-    }));
-    setParticles(prev => [...prev, ...newParticles]);
   };
 
   useEffect(() => {
@@ -757,21 +737,15 @@ function Snake({ onBest }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [gameOver]);
+  }, [gameOver, resetGame]);
 
-  const clearLoop = () => { 
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } 
-    if (animationRef.current) { cancelAnimationFrame(animationRef.current); animationRef.current = null; }
-  };
-  
+  const clearLoop = () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
   const startLoop = () => {
-    clearLoop(); 
-    if (!running) return;
+    clearLoop(); if (!running) return;
     const cps = Math.min(Math.max(speed, 1), 8);
-    const delay = Math.max(120, Math.floor(1000 / cps));
+    const delay = Math.max(160, Math.floor(1000 / cps));
     intervalRef.current = window.setInterval(() => tick(), delay);
   };
-  
   useEffect(() => { startLoop(); return clearLoop; }, [running, speed]);
 
   const resetGame = () => {
@@ -786,7 +760,6 @@ function Snake({ onBest }) {
     const start = [[10, 10]]; 
     setSnake(start); 
     placeFood(start);
-    setParticles([]);
   };
 
   const tick = () => {
@@ -794,52 +767,34 @@ function Snake({ onBest }) {
       const [dx, dy] = dirRef.current;
       const head = [ (s[0][0] + dx + grid) % grid, (s[0][1] + dy + grid) % grid ];
       
-      // Vérifier d'abord la collision avec la nourriture
-      if (head[0] === food[0] && head[1] === food[1]) {
-        setScore((sc) => { const ns = sc + 1; return ns; });
-        createFoodParticles(food[0], food[1]);
-        animate();
-        // Créer le nouveau corps avec la tête + l'ancien corps
-        const newBody = [head, ...s];
-        placeFood(newBody);
-        return newBody;
-      }
-      
-      // Ensuite vérifier la collision avec le corps
       if (s.some(([x, y]) => x === head[0] && y === head[1])) {
         setGameOver(true);
         setRunning(false);
         return s;
       }
       
-      // Mouvement normal : ajouter la tête et retirer la queue
       const body = [head, ...s];
+      if (head[0] === food[0] && head[1] === food[1]) {
+        setScore((sc) => { const ns = sc + 1; return ns; });
+        placeFood(body);
+        return body;
+      }
       body.pop();
       return body;
     });
   };
 
   useEffect(() => {
-    const cvs = canvasRef.current; 
-    if (!cvs) return; 
-    const ctx = cvs.getContext("2d"); 
-    if (!ctx) return;
-    
+    const cvs = canvasRef.current; if (!cvs) return; const ctx = cvs.getContext("2d"); if (!ctx) return;
+    let raf;
     const draw = () => {
-      cvs.width = grid * size; 
-      cvs.height = grid * size;
+      cvs.width = grid * size; cvs.height = grid * size;
       const dark = document.documentElement.classList.contains("dark");
-      
-      // Fond avec dégradé
-      const gradient = ctx.createLinearGradient(0, 0, cvs.width, cvs.height);
-      gradient.addColorStop(0, dark ? "#0f0f23" : "#f8fafc");
-      gradient.addColorStop(1, dark ? "#1a1a2e" : "#f1f5f9");
-      ctx.fillStyle = gradient;
+      ctx.fillStyle = dark ? "#09090b" : "#fff"; 
       ctx.fillRect(0, 0, cvs.width, cvs.height);
       
-      // Grille subtile
-      ctx.strokeStyle = dark ? "#37415122" : "#e5e7eb22";
-      ctx.lineWidth = 0.5;
+      // Grille
+      ctx.strokeStyle = "#ececec22";
       for (let i = 0; i <= grid; i++) { 
         ctx.beginPath(); 
         ctx.moveTo(i * size, 0); 
@@ -851,174 +806,77 @@ function Snake({ onBest }) {
         ctx.stroke(); 
       }
       
-      // Nourriture avec effet de pulsation
-      const time = Date.now() * 0.005;
-      const pulse = Math.sin(time) * 0.1 + 0.9;
-      const foodSize = size * 0.8; // Taille fixe pour éviter les problèmes de collision
-      const offset = (size - foodSize) / 2;
+      // Nourriture
+      ctx.fillStyle = "#ef4444"; 
+      ctx.fillRect(food[0] * size, food[1] * size, size, size);
       
-      // Ombre de la nourriture
-      ctx.fillStyle = dark ? "#7f1d1d" : "#fecaca";
-      ctx.fillRect(food[0] * size + offset + 2, food[1] * size + offset + 2, foodSize, foodSize);
-      
-      // Nourriture principale avec effet de pulsation
-      const foodGradient = ctx.createRadialGradient(
-        food[0] * size + size/2, food[1] * size + size/2, 0,
-        food[0] * size + size/2, food[1] * size + size/2, foodSize/2
-      );
-      foodGradient.addColorStop(0, "#ef4444");
-      foodGradient.addColorStop(1, "#dc2626");
-      ctx.fillStyle = foodGradient;
-      
-      // Appliquer l'effet de pulsation à la taille de rendu seulement
-      const renderSize = foodSize * pulse;
-      const renderOffset = (foodSize - renderSize) / 2;
-      ctx.fillRect(food[0] * size + offset + renderOffset, food[1] * size + offset + renderOffset, renderSize, renderSize);
-      
-      // Reflet sur la nourriture
-      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.fillRect(food[0] * size + offset + renderOffset + 2, food[1] * size + offset + renderOffset + 2, renderSize * 0.4, renderSize * 0.4);
-      
-      // Serpent avec dégradé et ombres
+      // Serpent
+      ctx.fillStyle = "#22c55e";
       snake.forEach(([x, y], idx) => {
-        const segmentSize = size - 2;
-        const segmentOffset = 1;
-        
-        // Ombre du segment
-        ctx.fillStyle = dark ? "#14532d" : "#bbf7d0";
-        ctx.fillRect(x * size + segmentOffset + 1, y * size + segmentOffset + 1, segmentSize, segmentSize);
-        
-        // Segment principal
-        if (idx === 0) {
-          // Tête avec dégradé spécial
-          const headGradient = ctx.createRadialGradient(
-            x * size + size/2, y * size + size/2, 0,
-            x * size + size/2, y * size + size/2, segmentSize/2
-          );
-          headGradient.addColorStop(0, "#16a34a");
-          headGradient.addColorStop(1, "#15803d");
-          ctx.fillStyle = headGradient;
-        } else {
-          // Corps avec dégradé
-          const bodyGradient = ctx.createLinearGradient(
-            x * size + segmentOffset, y * size + segmentOffset,
-            x * size + segmentSize, y * size + segmentSize
-          );
-          bodyGradient.addColorStop(0, "#22c55e");
-          bodyGradient.addColorStop(1, "#16a34a");
-          ctx.fillStyle = bodyGradient;
-        }
-        
-        ctx.fillRect(x * size + segmentOffset, y * size + segmentOffset, segmentSize, segmentSize);
-        
-        // Reflet sur chaque segment
-        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.fillRect(x * size + segmentOffset + 2, y * size + segmentOffset + 2, segmentSize * 0.3, segmentSize * 0.3);
-        
-        // Yeux sur la tête
-        if (idx === 0) {
-          ctx.fillStyle = dark ? "#1f2937" : "#ffffff";
-          const eyeSize = 3;
-          const eyeOffset = 4;
-          ctx.fillRect(x * size + eyeOffset, y * size + eyeOffset, eyeSize, eyeSize);
-          ctx.fillRect(x * size + segmentSize - eyeOffset - eyeSize, y * size + eyeOffset, eyeSize, eyeSize);
+        ctx.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+        if (idx === 0) { 
+          ctx.fillStyle = "#16a34a"; 
+          ctx.fillRect(x * size + 3, y * size + 3, size - 6, size - 6); 
+          ctx.fillStyle = "#22c55e"; 
         }
       });
       
-      animationRef.current = requestAnimationFrame(draw);
+      raf = requestAnimationFrame(draw);
     };
-    
-    animationRef.current = requestAnimationFrame(draw);
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [snake, food, running]);
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, [snake, food]);
 
   return (
-    <div className="space-y-3 relative">
-      {/* Particules */}
-      {particles.map(p => (
-        <Particle key={p.id} {...p} />
-      ))}
-      
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-wrap">
-        <div className="flex gap-2 flex-wrap">
-          <div className={cls(
-            "px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200",
-            isAnimating && "scale-105 bg-green-50 dark:bg-green-900/20"
-          )}>
-            Score : <b className="text-green-600 dark:text-green-400">{score}</b>
-          </div>
-          <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
-            Meilleur : <b className="text-purple-600 dark:text-purple-400">{highScore}</b>
-          </div>
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+          Score : <b>{score}</b>
         </div>
-        
-        <div className="flex items-center gap-2 flex-wrap">
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600 dark:text-zinc-300">Vitesse</span>
-            <input 
-              type="range" 
-              min={1} 
-              max={8} 
-              value={speed} 
-              onChange={(e) => setSpeed(parseInt(e.target.value))} 
-              className="w-16 sm:w-20 accent-purple-500"
-            />
-            <span className="w-6 text-right text-purple-600 dark:text-purple-400 font-bold">{speed}</span>
-          </label>
-          
+        <div className="px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700">
+          Meilleur : <b>{highScore}</b>
+        </div>
+        <label className="flex items-center gap-2 text-sm ml-auto">
+          <span className="text-gray-600 dark:text-zinc-300">Vitesse</span>
+          <input type="range" min={1} max={8} value={speed} onChange={(e) => setSpeed(parseInt(e.target.value))} />
+          <span className="w-6 text-right">{speed}</span>
+        </label>
+        <button 
+          onClick={() => setRunning((r) => !r)} 
+          className="px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700"
+        >
+          {running ? "Pause (P)" : "Reprendre"}
+        </button>
+        {gameOver && (
           <button 
-            onClick={() => setRunning((r) => !r)} 
-            className={cls(
-              "px-3 py-2 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 min-h-[44px]",
-              running 
-                ? "bg-orange-500 text-white border-orange-500 hover:bg-orange-600" 
-                : "bg-green-500 text-white border-green-500 hover:bg-green-600"
-            )}
+            onClick={resetGame} 
+            className="px-3 py-2 rounded-xl border bg-red-500 text-white hover:bg-red-600"
           >
-            <span className="hidden sm:inline">{running ? "Pause (P)" : "Reprendre"}</span>
-            <span className="sm:hidden">{running ? "⏸️" : "▶️"}</span>
+            Rejouer (R)
           </button>
-          
-          {gameOver && (
-            <button 
-              onClick={resetGame} 
-              className="px-3 py-2 rounded-xl border bg-red-500 text-white hover:bg-red-600 transition-all duration-200 hover:scale-105 active:scale-95 min-h-[44px]"
-            >
-              <span className="hidden sm:inline">Rejouer (R)</span>
-              <span className="sm:hidden">🔄</span>
-            </button>
-          )}
-        </div>
+        )}
       </div>
       
-      <div className="rounded-2xl overflow-hidden border dark:border-zinc-700 relative shadow-lg">
+      <div className="rounded-2xl overflow-hidden border dark:border-zinc-700 relative">
         {!running && !gameOver && (
-          <div className="absolute inset-0 z-10 grid place-items-center text-sm text-gray-700 dark:text-zinc-300 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
-            <div className="px-4 py-2 rounded-full border-2 border-orange-300 dark:border-orange-700 bg-white dark:bg-zinc-800 shadow-lg">
-              <span className="hidden sm:inline">⏸️ En pause — P pour reprendre</span>
-              <span className="sm:hidden">⏸️ Pause</span>
-            </div>
+          <div className="absolute inset-0 z-10 grid place-items-center text-sm text-gray-700 dark:text-zinc-300 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-sm">
+            <div className="px-3 py-1 rounded-full border dark:border-zinc-700">En pause — P pour reprendre</div>
           </div>
         )}
         {gameOver && (
-          <div className="absolute inset-0 z-10 grid place-items-center text-center text-gray-700 dark:text-zinc-300 bg-red-50/95 dark:bg-red-900/80 backdrop-blur-sm">
-            <div className="px-4 sm:px-6 py-4 rounded-2xl border-2 border-red-300 dark:border-red-700 bg-white dark:bg-zinc-800 shadow-2xl animate-bounce">
-              <div className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mb-2">💀 Game Over!</div>
-              <div className="text-base sm:text-lg mb-1">Score final: <span className="font-bold text-green-600 dark:text-green-400">{score}</span></div>
-              <div className="text-xs sm:text-sm text-gray-500 dark:text-zinc-400">Appuie sur R pour rejouer</div>
+          <div className="absolute inset-0 z-10 grid place-items-center text-center text-gray-700 dark:text-zinc-300 bg-red-50/90 dark:bg-red-900/60 backdrop-blur-sm">
+            <div className="px-4 py-2 rounded-xl border-2 border-red-300 dark:border-red-700 bg-white dark:bg-zinc-800">
+              <div className="text-lg font-bold text-red-600 dark:text-red-400">Game Over!</div>
+              <div className="text-sm">Score final: {score}</div>
+              <div className="text-xs mt-1">Appuie sur R pour rejouer</div>
             </div>
           </div>
         )}
-        <canvas ref={canvasRef} className="w-full aspect-square game-canvas mobile-optimized" />
+        <canvas ref={canvasRef} className="w-full aspect-square" />
       </div>
       
-      <div className="text-xs text-gray-500 dark:text-zinc-400 text-center mobile-text">
-        <span className="hidden sm:inline">🎮 Flèches ou ZQSD/WASD • Wrap • Vitesse réglable • P = pause • R = reset</span>
-        <span className="sm:hidden">🎮 Utilise les contrôles tactiles ci-dessous</span>
+      <div className="text-xs text-gray-500 dark:text-zinc-400">
+        Flèches ou ZQSD/WASD • Wrap • Vitesse réglable • P = pause • R = reset
       </div>
       
       {/* Contrôles tactiles pour mobile */}
@@ -1031,7 +889,7 @@ function Snake({ onBest }) {
               setDir(dirRef.current); 
             }
           }}
-          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
         >
           ↑
         </button>
@@ -1044,20 +902,15 @@ function Snake({ onBest }) {
               setDir(dirRef.current); 
             }
           }}
-          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
         >
           ←
         </button>
         <button
           onClick={() => setRunning((r) => !r)}
-          className={cls(
-            "p-4 rounded-xl border text-sm font-bold transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]",
-            running 
-              ? "bg-orange-500 text-white border-orange-500 hover:bg-orange-600" 
-              : "bg-green-500 text-white border-green-500 hover:bg-green-600"
-          )}
+          className="p-3 rounded-xl border bg-purple-500 text-white hover:bg-purple-600 text-sm font-bold"
         >
-          {running ? "⏸️" : "▶️"}
+          {running ? "Pause" : "Play"}
         </button>
         <button
           onClick={() => {
@@ -1066,7 +919,7 @@ function Snake({ onBest }) {
               setDir(dirRef.current); 
             }
           }}
-          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
         >
           →
         </button>
@@ -1079,7 +932,7 @@ function Snake({ onBest }) {
               setDir(dirRef.current); 
             }
           }}
-          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
         >
           ↓
         </button>
@@ -1090,7 +943,7 @@ function Snake({ onBest }) {
 }
 
 // =====================================
-// 6) JEU 2048 avec animations fluides
+// 6) NOUVEAU JEU : 2048
 // =====================================
 function Game2048({ onBest }) {
   const [board, setBoard] = useState(() => {
@@ -1106,8 +959,6 @@ function Game2048({ onBest }) {
   const [isAnimating, animate] = useAnimation();
   const [particles, setParticles] = useState([]);
   const [lastScore, setLastScore] = useState(0);
-  const [tilePositions, setTilePositions] = useState(new Map());
-  const [isMoving, setIsMoving] = useState(false);
 
   const addRandomTile = (currentBoard) => {
     const emptyCells = currentBoard.map((cell, index) => cell === 0 ? index : null).filter(val => val !== null);
@@ -1139,7 +990,7 @@ function Game2048({ onBest }) {
     const y = row * 80 + 40;
     
     // Réduire le nombre de particules sur mobile pour améliorer les performances
-    const isMobile = window.innerWidth < 768;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const particleCount = isMobile ? 4 : 8;
     
     const newParticles = Array.from({ length: particleCount }, (_, i) => ({
@@ -1159,7 +1010,6 @@ function Game2048({ onBest }) {
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
-    const slideAnimations = new Map();
 
     for (let row = 0; row < 4; row++) {
       const cells = newBoard.slice(row * 4, (row + 1) * 4).filter(cell => cell !== 0);
@@ -1190,22 +1040,8 @@ function Game2048({ onBest }) {
       
       while (merged.length < 4) merged.push(0);
       
-      // Créer les animations de glissement
       for (let col = 0; col < 4; col++) {
-        const oldValue = board[row * 4 + col];
         const newValue = merged[col];
-        
-        if (oldValue !== 0 && newValue !== oldValue) {
-          // Animation de glissement vers la gauche
-          slideAnimations.set(row * 4 + col, {
-            type: 'slide',
-            startTime: Date.now(),
-            fromPos: { row, col },
-            toPos: { row, col: merged.indexOf(newValue) },
-            value: oldValue
-          });
-        }
-        
         if (newBoard[row * 4 + col] !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
@@ -1214,16 +1050,8 @@ function Game2048({ onBest }) {
     if (moved) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
-      setTilePositions(slideAnimations);
       setLastScore(score);
-      setIsMoving(true);
       animate();
-      
-      // Arrêter l'animation après 300ms
-      setTimeout(() => {
-        setIsMoving(false);
-        setTilePositions(new Map());
-      }, 300);
     }
     
     return moved ? newBoard : board;
@@ -1234,7 +1062,6 @@ function Game2048({ onBest }) {
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
-    const slideAnimations = new Map();
 
     for (let row = 0; row < 4; row++) {
       const cells = newBoard.slice(row * 4, (row + 1) * 4).filter(cell => cell !== 0);
@@ -1264,22 +1091,8 @@ function Game2048({ onBest }) {
       
       while (merged.length < 4) merged.unshift(0);
       
-      // Créer les animations de glissement
       for (let col = 0; col < 4; col++) {
-        const oldValue = board[row * 4 + col];
         const newValue = merged[col];
-        
-        if (oldValue !== 0 && newValue !== oldValue) {
-          // Animation de glissement vers la droite
-          slideAnimations.set(row * 4 + col, {
-            type: 'slide',
-            startTime: Date.now(),
-            fromPos: { row, col },
-            toPos: { row, col: merged.indexOf(newValue) },
-            value: oldValue
-          });
-        }
-        
         if (newBoard[row * 4 + col] !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
@@ -1288,16 +1101,8 @@ function Game2048({ onBest }) {
     if (moved) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
-      setTilePositions(slideAnimations);
       setLastScore(score);
-      setIsMoving(true);
       animate();
-      
-      // Arrêter l'animation après 300ms
-      setTimeout(() => {
-        setIsMoving(false);
-        setTilePositions(new Map());
-      }, 300);
     }
     
     return moved ? newBoard : board;
@@ -1308,7 +1113,6 @@ function Game2048({ onBest }) {
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
-    const slideAnimations = new Map();
 
     for (let col = 0; col < 4; col++) {
       const cells = [];
@@ -1341,22 +1145,8 @@ function Game2048({ onBest }) {
       
       while (merged.length < 4) merged.push(0);
       
-      // Créer les animations de glissement
       for (let row = 0; row < 4; row++) {
-        const oldValue = board[row * 4 + col];
         const newValue = merged[row];
-        
-        if (oldValue !== 0 && newValue !== oldValue) {
-          // Animation de glissement vers le haut
-          slideAnimations.set(row * 4 + col, {
-            type: 'slide',
-            startTime: Date.now(),
-            fromPos: { row, col },
-            toPos: { row: merged.indexOf(newValue), col },
-            value: oldValue
-          });
-        }
-        
         if (newBoard[row * 4 + col] !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
@@ -1365,16 +1155,8 @@ function Game2048({ onBest }) {
     if (moved) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
-      setTilePositions(slideAnimations);
       setLastScore(score);
-      setIsMoving(true);
       animate();
-      
-      // Arrêter l'animation après 300ms
-      setTimeout(() => {
-        setIsMoving(false);
-        setTilePositions(new Map());
-      }, 300);
     }
     
     return moved ? newBoard : board;
@@ -1385,7 +1167,6 @@ function Game2048({ onBest }) {
     let moved = false;
     let newScore = score;
     const mergeAnimations = new Map();
-    const slideAnimations = new Map();
 
     for (let col = 0; col < 4; col++) {
       const cells = [];
@@ -1418,22 +1199,8 @@ function Game2048({ onBest }) {
       
       while (merged.length < 4) merged.unshift(0);
       
-      // Créer les animations de glissement
       for (let row = 0; row < 4; row++) {
-        const oldValue = board[row * 4 + col];
         const newValue = merged[row];
-        
-        if (oldValue !== 0 && newValue !== oldValue) {
-          // Animation de glissement vers le bas
-          slideAnimations.set(row * 4 + col, {
-            type: 'slide',
-            startTime: Date.now(),
-            fromPos: { row, col },
-            toPos: { row: merged.indexOf(newValue), col },
-            value: oldValue
-          });
-        }
-        
         if (newBoard[row * 4 + col] !== newValue) moved = true;
         newBoard[row * 4 + col] = newValue;
       }
@@ -1442,16 +1209,8 @@ function Game2048({ onBest }) {
     if (moved) {
       setScore(newScore);
       setAnimatingTiles(mergeAnimations);
-      setTilePositions(slideAnimations);
       setLastScore(score);
-      setIsMoving(true);
       animate();
-      
-      // Arrêter l'animation après 300ms
-      setTimeout(() => {
-        setIsMoving(false);
-        setTilePositions(new Map());
-      }, 300);
     }
     
     return moved ? newBoard : board;
@@ -1530,7 +1289,7 @@ function Game2048({ onBest }) {
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [board, gameOver]);
+  }, [board, gameOver, won, score]);
 
   const resetGame = () => {
     const newBoard = Array(16).fill(0);
@@ -1541,10 +1300,8 @@ function Game2048({ onBest }) {
     setGameOver(false);
     setWon(false);
     setAnimatingTiles(new Map());
-    setTilePositions(new Map());
     setParticles([]);
     setLastScore(0);
-    setIsMoving(false);
   };
 
   // Nettoyer les animations expirées
@@ -1606,58 +1363,20 @@ function Game2048({ onBest }) {
 
   const getTileAnimation = (index) => {
     const animation = animatingTiles.get(index);
-    const slideAnimation = tilePositions.get(index);
+    if (!animation) return '';
     
-    if (slideAnimation) {
-      const elapsed = Date.now() - slideAnimation.startTime;
-      const progress = Math.min(elapsed / 300, 1);
-      // Easing function pour un mouvement plus fluide comme un toggle
-      const easeProgress = progress < 0.5 
-        ? 2 * progress * progress 
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      
-      const fromPos = slideAnimation.fromPos;
-      const toPos = slideAnimation.toPos;
-      
-      const deltaX = (toPos.col - fromPos.col) * 100; // 100% par case
-      const deltaY = (toPos.row - fromPos.row) * 100;
-      
-      const translateX = deltaX * easeProgress;
-      const translateY = deltaY * easeProgress;
-      
-      return {
-        transform: `translate3d(${translateX}%, ${translateY}%, 0)`,
-        transition: 'none',
-        zIndex: 20,
-        willChange: 'transform'
-      };
+    const elapsed = Date.now() - animation.startTime;
+    const progress = Math.min(elapsed / 300, 1);
+    
+    if (animation.type === 'spawn') {
+      const scale = progress < 0.5 ? progress * 2 : 1;
+      return `transform scale-${Math.round(scale * 10) / 10}`;
+    } else if (animation.type === 'merge') {
+      const scale = progress < 0.3 ? 1 + (progress / 0.3) * 0.2 : 1.2 - ((progress - 0.3) / 0.7) * 0.2;
+      return `transform scale-${Math.round(scale * 10) / 10}`;
     }
     
-    if (animation) {
-      const elapsed = Date.now() - animation.startTime;
-      const progress = Math.min(elapsed / 300, 1);
-      
-      if (animation.type === 'spawn') {
-        const scale = progress < 0.5 ? progress * 2 : 1;
-        return {
-          transform: `scale3d(${scale}, ${scale}, 1)`,
-          zIndex: 15,
-          willChange: 'transform'
-        };
-      } else if (animation.type === 'merge') {
-        const scale = progress < 0.3 ? 1 + (progress / 0.3) * 0.2 : 1.2 - ((progress - 0.3) / 0.7) * 0.2;
-        return {
-          transform: `scale3d(${scale}, ${scale}, 1)`,
-          zIndex: 15,
-          willChange: 'transform'
-        };
-      }
-    }
-    
-    return {
-      transform: 'scale3d(1, 1, 1)',
-      zIndex: 1
-    };
+    return '';
   };
 
   return (
@@ -1667,7 +1386,7 @@ function Game2048({ onBest }) {
         <Particle key={p.id} {...p} />
       ))}
       
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className={cls(
           "px-3 py-2 rounded-xl border bg-white text-sm dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200",
           isAnimating && "scale-105 bg-green-50 dark:bg-green-900/20"
@@ -1681,7 +1400,7 @@ function Game2048({ onBest }) {
         </div>
         <button 
           onClick={resetGame} 
-          className="px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200 hover:scale-105 active:scale-95 min-h-[44px]"
+          className="ml-auto px-3 py-2 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 transition-all duration-200 hover:scale-105"
         >
           🔄 Nouveau jeu
         </button>
@@ -1699,41 +1418,32 @@ function Game2048({ onBest }) {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl mobile-grid relative">
-        {board.map((value, index) => {
-          const slideAnimation = tilePositions.get(index);
-          const isSliding = slideAnimation && isMoving;
-          const animationStyle = getTileAnimation(index);
-          
-          return (
-            <div
-              key={index}
-              className={cls(
-                "aspect-square rounded-lg flex items-center justify-center text-sm sm:text-lg font-bold relative overflow-hidden min-h-[60px] sm:min-h-[80px]",
-                getTileColor(value),
-                value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100",
-                !isSliding && "transition-all duration-300",
-                animatingTiles.has(index) && "shadow-lg shadow-yellow-500/50"
-              )}
-              style={{
-                ...animationStyle
-              }}
-            >
-              {value || ''}
-              {animatingTiles.has(index) && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
-              )}
-              {isSliding && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
-              )}
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto p-2 bg-gray-100 dark:bg-zinc-800 rounded-xl">
+        {board.map((value, index) => (
+          <div
+            key={index}
+            className={cls(
+              "aspect-square rounded-lg flex items-center justify-center text-lg font-bold transition-all duration-300 relative overflow-hidden",
+              getTileColor(value),
+              value === 0 ? "text-transparent" : "text-gray-800 dark:text-zinc-100",
+              getTileAnimation(index),
+              animatingTiles.has(index) && "shadow-lg shadow-yellow-500/50"
+            )}
+            style={{
+              transform: animatingTiles.has(index) ? 'scale(1.1)' : 'scale(1)',
+              zIndex: animatingTiles.has(index) ? 10 : 1
+            }}
+          >
+            {value || ''}
+            {animatingTiles.has(index) && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+            )}
+          </div>
+        ))}
       </div>
       
-      <div className="text-xs text-gray-500 dark:text-zinc-400 text-center mobile-text">
-        <span className="hidden sm:inline">🎮 Utilise les flèches ou ZQSD/WASD pour déplacer les tuiles. Combine les tuiles identiques !</span>
-        <span className="sm:hidden">🎮 Utilise les contrôles tactiles ci-dessous</span>
+      <div className="text-xs text-gray-500 dark:text-zinc-400 text-center">
+        Utilise les flèches ou ZQSD/WASD pour déplacer les tuiles. Combine les tuiles identiques !
       </div>
       
       {/* Contrôles tactiles pour mobile */}
@@ -1748,16 +1458,38 @@ function Game2048({ onBest }) {
               
               if (!won && updatedBoard.some(cell => cell === 2048)) {
                 setWon(true);
-                onBest?.(score);
               }
               
               if (updatedBoard.every(cell => cell !== 0)) {
-                setGameOver(true);
-                onBest?.(score);
+                let canMove = false;
+                for (let row = 0; row < 4; row++) {
+                  for (let col = 0; col < 3; col++) {
+                    if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+                      canMove = true;
+                      break;
+                    }
+                  }
+                  if (canMove) break;
+                }
+                if (!canMove) {
+                  for (let col = 0; col < 4; col++) {
+                    for (let row = 0; row < 3; row++) {
+                      if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                        canMove = true;
+                        break;
+                      }
+                    }
+                    if (canMove) break;
+                  }
+                }
+                if (!canMove) {
+                  setGameOver(true);
+                  onBest?.(score);
+                }
               }
             }
           }}
-          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
         >
           ↑
         </button>
@@ -1772,24 +1504,46 @@ function Game2048({ onBest }) {
               
               if (!won && updatedBoard.some(cell => cell === 2048)) {
                 setWon(true);
-                onBest?.(score);
               }
               
               if (updatedBoard.every(cell => cell !== 0)) {
-                setGameOver(true);
-                onBest?.(score);
+                let canMove = false;
+                for (let row = 0; row < 4; row++) {
+                  for (let col = 0; col < 3; col++) {
+                    if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+                      canMove = true;
+                      break;
+                    }
+                  }
+                  if (canMove) break;
+                }
+                if (!canMove) {
+                  for (let col = 0; col < 4; col++) {
+                    for (let row = 0; row < 3; row++) {
+                      if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                        canMove = true;
+                        break;
+                      }
+                    }
+                    if (canMove) break;
+                  }
+                }
+                if (!canMove) {
+                  setGameOver(true);
+                  onBest?.(score);
+                }
               }
             }
           }}
-          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
         >
           ←
         </button>
         <button
           onClick={resetGame}
-          className="p-4 rounded-xl border bg-purple-500 text-white hover:bg-purple-600 text-sm font-bold transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-purple-500 text-white hover:bg-purple-600 text-sm font-bold"
         >
-          🔄
+          Reset
         </button>
         <button
           onClick={() => {
@@ -1800,16 +1554,38 @@ function Game2048({ onBest }) {
               
               if (!won && updatedBoard.some(cell => cell === 2048)) {
                 setWon(true);
-                onBest?.(score);
               }
               
               if (updatedBoard.every(cell => cell !== 0)) {
-                setGameOver(true);
-                onBest?.(score);
+                let canMove = false;
+                for (let row = 0; row < 4; row++) {
+                  for (let col = 0; col < 3; col++) {
+                    if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+                      canMove = true;
+                      break;
+                    }
+                  }
+                  if (canMove) break;
+                }
+                if (!canMove) {
+                  for (let col = 0; col < 4; col++) {
+                    for (let row = 0; row < 3; row++) {
+                      if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                        canMove = true;
+                        break;
+                      }
+                    }
+                    if (canMove) break;
+                  }
+                }
+                if (!canMove) {
+                  setGameOver(true);
+                  onBest?.(score);
+                }
               }
             }
           }}
-          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
         >
           →
         </button>
@@ -1824,16 +1600,38 @@ function Game2048({ onBest }) {
               
               if (!won && updatedBoard.some(cell => cell === 2048)) {
                 setWon(true);
-                onBest?.(score);
               }
               
               if (updatedBoard.every(cell => cell !== 0)) {
-                setGameOver(true);
-                onBest?.(score);
+                let canMove = false;
+                for (let row = 0; row < 4; row++) {
+                  for (let col = 0; col < 3; col++) {
+                    if (updatedBoard[row * 4 + col] === updatedBoard[row * 4 + col + 1]) {
+                      canMove = true;
+                      break;
+                    }
+                  }
+                  if (canMove) break;
+                }
+                if (!canMove) {
+                  for (let col = 0; col < 4; col++) {
+                    for (let row = 0; row < 3; row++) {
+                      if (updatedBoard[row * 4 + col] === updatedBoard[(row + 1) * 4 + col]) {
+                        canMove = true;
+                        break;
+                      }
+                    }
+                    if (canMove) break;
+                  }
+                }
+                if (!canMove) {
+                  setGameOver(true);
+                  onBest?.(score);
+                }
               }
             }
           }}
-          className="p-4 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl transition-all duration-200 hover:scale-110 active:scale-95 min-h-[60px]"
+          className="p-3 rounded-xl border bg-white hover:shadow dark:bg-zinc-800 dark:border-zinc-700 text-2xl"
         >
           ↓
         </button>
@@ -1925,12 +1723,12 @@ function Notes({ onExit }) {
         <textarea 
           value={txt} 
           onChange={(e) => setTxt(e.target.value)} 
-          className="w-full h-[70vh] sm:h-[78vh] p-4 rounded-xl border bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 mobile-text"
+          className="w-full h-[70vh] sm:h-[78vh] p-4 rounded-xl border bg-white dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
           style={{ fontSize: `${fontSize}px`, fontFamily }}
           placeholder="Commence à écrire tes notes..."
         />
         
-        <div className="text-[11px] text-gray-400 mt-2 flex flex-col sm:flex-row justify-between gap-1 mobile-text">
+        <div className="text-[11px] text-gray-400 mt-2 flex justify-between">
           <span>Astuce : appuie sur <b>!</b> pour revenir ici instantanément.</span>
           <span>{txt.length} caractères</span>
         </div>
@@ -2027,7 +1825,6 @@ export default function FunSite() {
   }));
   const [stealth, setStealth] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const setDark = (v) => setPersist((p) => ({ ...p, dark: v }));
   const setTab = (t) => setPersist((p) => ({ ...p, tab: t }));
@@ -2050,21 +1847,20 @@ export default function FunSite() {
       const k = e.key;
       if (k === "!") { setTab("notes"); setStealth(true); addNotification("Mode discret activé", 'success'); return; }
       if (stealth) return;
-      if (k === "1") { setTab("clicker"); setMobileMenuOpen(false); }
-      if (k === "2") { setTab("doodle"); setMobileMenuOpen(false); }
-      if (k === "3") { setTab("typing"); setMobileMenuOpen(false); }
-      if (k === "4") { setTab("memory"); setMobileMenuOpen(false); }
-      if (k === "5") { setTab("snake"); setMobileMenuOpen(false); }
-      if (k === "6") { setTab("game2048"); setMobileMenuOpen(false); }
-      if (k === "7") { setTab("stats"); setMobileMenuOpen(false); }
+      if (k === "1") setTab("clicker");
+      if (k === "2") setTab("doodle");
+      if (k === "3") setTab("typing");
+      if (k === "4") setTab("memory");
+      if (k === "5") setTab("snake");
+      if (k === "6") setTab("game2048");
+      if (k === "7") setTab("stats");
       if (k.toLowerCase() === "d") setDark(!persist.dark);
       if (k.toLowerCase() === "r") addNotification("Reset disponible", 'info');
       if (k.toLowerCase() === "s") addNotification("Screenshot pris", 'success');
-      if (k === "Escape") setMobileMenuOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [persist.dark, stealth]);
+  }, [persist.dark, stealth, setTab, setDark, addNotification]);
 
   const exitNotes = () => { setStealth(false); setTab("stats"); addNotification("Mode normal restauré", 'info'); };
 
@@ -2096,50 +1892,35 @@ export default function FunSite() {
       <div className={cls("max-w-4xl mx-auto", isNotes ? "px-0 sm:px-0" : "px-4") }>
         {!isNotes && (
           <>
-            <header className="flex items-center gap-3 py-4 sm:py-6 md:py-10">
-              <div className="text-2xl sm:text-3xl animate-bounce">🕹️</div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                <span className="hidden sm:inline">Mini‑jeux discrets</span>
-                <span className="sm:hidden">Mini‑jeux</span>
+            <header className="flex items-center gap-3 py-6 sm:py-10">
+              <div className="text-3xl animate-bounce">🕹️</div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Mini‑jeux discrets
               </h1>
-              <div className="ml-auto flex items-center gap-1 sm:gap-2">
+              <div className="ml-auto flex items-center gap-2">
                 <button 
                   onClick={() => { setTab("notes"); setStealth(true); }} 
-                  className="px-2 sm:px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px]"
+                  className="px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm hover:shadow-lg hover:scale-105 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700"
                 >
-                  <span className="hidden sm:inline">Mode discret (!)</span>
-                  <span className="sm:hidden">📝</span>
+                  Mode discret (!)
                 </button>
                 <button 
                   onClick={() => setDark(!persist.dark)} 
-                  className="px-2 sm:px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px]"
+                  className="px-3 py-2 rounded-xl border bg-white text-xs sm:text-sm hover:shadow-lg hover:scale-105 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700"
                 >
-                  <span className="hidden sm:inline">{persist.dark ? "☀️ Clair (d)" : "🌙 Sombre (d)"}</span>
-                  <span className="sm:hidden">{persist.dark ? "☀️" : "🌙"}</span>
-                </button>
-                <button 
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-                  className="sm:hidden px-2 py-2 rounded-xl border bg-white hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 dark:bg-zinc-800 dark:border-zinc-700 min-h-[44px]"
-                >
-                  {mobileMenuOpen ? "✕" : "☰"}
+                  {persist.dark ? "☀️ Clair (d)" : "🌙 Sombre (d)"}
                 </button>
               </div>
             </header>
             
-            <nav className={cls(
-              "flex gap-1 sm:gap-2 mb-4 sm:mb-5 sticky top-0 z-10 bg-gradient-to-b from-white/90 to-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/80 p-2 rounded-2xl border shadow-lg dark:from-zinc-900/90 dark:to-zinc-900/70 dark:border-zinc-800 overflow-x-auto",
-              mobileMenuOpen ? "flex-col sm:flex-row" : "flex-row"
-            )}>
+            <nav className="flex gap-2 mb-5 sticky top-0 z-10 bg-gradient-to-b from-white/90 to-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/80 p-2 rounded-2xl border shadow-lg dark:from-zinc-900/90 dark:to-zinc-900/70 dark:border-zinc-800">
               {tabs.map((t) => (
                 <TabBtn 
                   key={t.key} 
                   label={t.label} 
                   emoji={t.emoji} 
                   active={persist.tab === t.key} 
-                  onClick={() => {
-                    setTab(t.key);
-                    setMobileMenuOpen(false);
-                  }}
+                  onClick={() => setTab(t.key)}
                   badge={persist.stats[`${t.key}Best`] > 0 ? "!" : null}
                 />
               ))}
@@ -2147,7 +1928,7 @@ export default function FunSite() {
           </>
         )}
 
-        <main className={cls("rounded-2xl sm:rounded-3xl border shadow-lg transition-all duration-300", isNotes ? "m-0 border-0" : "bg-white p-3 sm:p-4 md:p-6 dark:bg-zinc-900 dark:border-zinc-800 hover:shadow-xl") }>
+        <main className={cls("rounded-3xl border shadow-lg transition-all duration-300", isNotes ? "m-0 border-0" : "bg-white p-4 sm:p-6 dark:bg-zinc-900 dark:border-zinc-800 hover:shadow-xl") }>
           {persist.tab === "clicker" && <Clicker />}
           {persist.tab === "doodle"  && <Doodle />}
           {persist.tab === "typing"  && <Typing onBest={onTypingBest} />}
@@ -2173,13 +1954,12 @@ export default function FunSite() {
         </main>
 
         {!isNotes && (
-          <footer className="text-xs text-gray-500 mt-4 sm:mt-6 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-1 sm:gap-x-3 sm:gap-y-1 dark:text-zinc-400">
-            <span className="hidden sm:inline">Raccourcis : 1‑7, d = sombre, ! = discret, P = pause, R = reset, S = screenshot.</span>
-            <span className="sm:hidden">Raccourcis : 1‑7, d = sombre, ! = discret</span>
+          <footer className="text-xs text-gray-500 mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 dark:text-zinc-400">
+            <span>Raccourcis : 1‑7, d = sombre, ! = discret, P = pause, R = reset, S = screenshot.</span>
             <span className="hidden sm:inline">•</span>
             <span>Stats et thème enregistrés localement.</span>
             <span className="hidden sm:inline">•</span>
-            <span>Version mobile optimisée !</span>
+            <span>Version améliorée avec effets visuels !</span>
           </footer>
         )}
       </div>
