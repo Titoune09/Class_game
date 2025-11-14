@@ -9,6 +9,15 @@ Application complète de productivité pour étudiants, conçue pour iPad, avec 
 - Chapitres avec priorité, niveau de maîtrise (0-5 étoiles), dates d'examen
 - Organisation intuitive par matière
 
+### 📋 Gestion des Tâches & Objectifs (NOUVEAU)
+- **Tâches** avec priorités, dates limites, sous-tâches, tags
+- **Objectifs** à court terme (0-2 sem), moyen terme (2-8 sem), long terme (2+ mois)
+- Vue Kanban (À faire / En cours / Terminé)
+- Milestones et suivi de progression automatique
+- Filtres intelligents (Aujourd'hui, Cette semaine, En retard)
+- Lien tâches ↔ objectifs pour tracking complet
+- Statistiques et analytics détaillées
+
 ### 📅 Planning hebdomadaire
 - Vue semaine avec grid 7 jours
 - Ajout/modification/suppression de sessions
@@ -72,6 +81,7 @@ Application complète de productivité pour étudiants, conçue pour iPad, avec 
 ├── components/
 │   ├── ui/              # Composants UI de base
 │   ├── subjects/        # Composants matières/chapitres
+│   ├── tasks/           # Composants tâches & objectifs 🆕
 │   ├── planning/        # Composants planning
 │   ├── pomodoro/        # Composants timer
 │   ├── class-mode/      # Composants mode classe ⭐
@@ -80,6 +90,8 @@ Application complète de productivité pour étudiants, conçue pour iPad, avec 
 ├── hooks/
 │   ├── usePersistentState.ts
 │   ├── useSubjects.ts
+│   ├── useTasks.ts      # Hook tâches 🆕
+│   ├── useGoals.ts      # Hook objectifs 🆕
 │   ├── usePlanning.ts
 │   ├── usePomodoro.ts
 │   ├── useXP.ts
@@ -91,7 +103,13 @@ Application complète de productivité pour étudiants, conçue pour iPad, avec 
 │   ├── class/           # Générateur de défis ⭐
 │   └── utils/           # Utilitaires
 ├── types/               # Types TypeScript
+│   ├── task.ts          # Types tâches & objectifs 🆕
+│   └── ...
+├── docs/                # Documentation
+│   └── TASKS_AND_GOALS.md  # Guide tâches & objectifs 🆕
 └── pages/               # Pages Next.js
+    ├── tasks.tsx        # Page tâches & objectifs 🆕
+    └── ...
 
 ```
 
@@ -203,6 +221,11 @@ En cas de problème :
 
 ## 📝 TODO / Améliorations futures
 
+- [x] ✅ Gestion des tâches avec Kanban
+- [x] ✅ Objectifs court/moyen/long terme
+- [x] ✅ Suivi de progression automatique
+- [ ] Drag & drop des tâches
+- [ ] Templates de tâches récurrentes
 - [ ] Export/import données (JSON)
 - [ ] Thème sombre
 - [ ] PWA (installable)

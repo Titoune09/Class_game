@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 const navigation = [
   { name: 'Accueil', path: '/', icon: '🏠' },
   { name: 'Matières', path: '/subjects', icon: '📚' },
+  { name: 'Tâches', path: '/tasks', icon: '✓' },
   { name: 'Planning', path: '/planning', icon: '📅' },
   { name: 'Pomodoro', path: '/pomodoro', icon: '⏱️' },
   { name: 'Classe', path: '/class-mode', icon: '🎓' },

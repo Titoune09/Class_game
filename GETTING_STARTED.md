@@ -47,7 +47,29 @@ npm start
    - Date d'examen (optionnel)
 4. Validez
 
-### Étape 3 : Planifier une session
+### Étape 3 : Créer une tâche et un objectif (NOUVEAU)
+
+**Créer une tâche :**
+1. Allez sur **Tâches** (✓)
+2. Cliquez sur **"+ Nouvelle tâche"**
+3. Remplissez :
+   - Titre : ex. "Réviser chapitre 3"
+   - Priorité : Basse / Moyenne / Haute / Urgente
+   - Date limite (optionnel)
+4. Validez
+
+**Créer un objectif :**
+1. Dans l'onglet **Objectifs** (même page)
+2. Cliquez sur **"+ Nouvel objectif"**
+3. Remplissez :
+   - Titre : ex. "Réussir mon examen de maths"
+   - Description
+   - Échéance : Court / Moyen / Long terme
+   - Date cible
+   - Couleur (pour identification visuelle)
+4. Validez
+
+### Étape 4 : Planifier une session
 
 1. Allez sur **Planning** (📅)
 2. Cliquez sur **"Ajouter"** sous le jour souhaité
@@ -57,14 +79,14 @@ npm start
    - Durée (15-120 min)
 4. Validez
 
-### Étape 4 : Lancer un Pomodoro
+### Étape 5 : Lancer un Pomodoro
 
 1. Allez sur **Pomodoro** (⏱️)
 2. Choisissez un preset (25/5, 40/10, 50/10)
 3. Cliquez sur **"Démarrer"**
 4. Concentrez-vous ! ⚡
 
-### Étape 5 : Utiliser le Mode Classe 🎓
+### Étape 6 : Utiliser le Mode Classe 🎓
 
 **Avant le cours :**
 1. Allez sur **Classe** (🎓)
@@ -90,6 +112,12 @@ npm start
 
 ### XP et Niveaux
 
+- **Tâche complétée** : +5 XP 🆕
+- **Tâche urgente complétée** : +10 XP 🆕
+- **Milestone d'objectif** : +10 XP 🆕
+- **Objectif court terme complété** : +50 XP 🆕
+- **Objectif moyen terme complété** : +100 XP 🆕
+- **Objectif long terme complété** : +250 XP 🆕
 - **Pomodoro complété** : +10 XP
 - **Session planning complétée** : +15 XP
 - **Cours suivi** : +50-125 XP (selon évaluation)
